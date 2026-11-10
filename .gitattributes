@@ -1,0 +1,11 @@
+# Keep one canonical checkout format. The dataset files are verified by
+# SHA-256 in week1/data/manifest.json, so any newline conversion would break
+# audit_data.py on a fresh clone.
+* text=auto eol=lf
+*.py  text eol=lf
+*.md  text eol=lf
+*.json  text eol=lf
+*.jsonl text eol=lf
+*.pt  binary
+*.png binary
+*.zip binary

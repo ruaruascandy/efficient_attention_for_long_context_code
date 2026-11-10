@@ -1,0 +1,116 @@
+{
+  "dataset_version": "week1-v1",
+  "seed": 20261110,
+  "task": "Exact final value of result, integer classes 0..9",
+  "tokenizer": "UTF-8 bytes + CLS (lengths exclude CLS)",
+  "split_protocol": "disjoint operator-composition skeletons; small synthetic grammar only",
+  "templates": {
+    "train": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "validation": [
+      4,
+      5
+    ],
+    "test": [
+      6,
+      7
+    ]
+  },
+  "splits": {
+    "train": {
+      "samples": 1200,
+      "labels": {
+        "5": 120,
+        "1": 120,
+        "6": 120,
+        "7": 120,
+        "3": 120,
+        "4": 120,
+        "9": 120,
+        "8": 120,
+        "0": 120,
+        "2": 120
+      },
+      "lengths": {
+        "256": 1200
+      },
+      "skeleton_ids": [
+        "branch_t0",
+        "branch_t1",
+        "branch_t2",
+        "branch_t3",
+        "call_t0",
+        "call_t1",
+        "call_t2",
+        "call_t3",
+        "chain_t0",
+        "chain_t1",
+        "chain_t2",
+        "chain_t3"
+      ],
+      "sha256": "6a619cdea3495ad8e8d5eddf78d4045762dc2c520d051e129da1f36497e86256"
+    },
+    "validation": {
+      "samples": 360,
+      "labels": {
+        "6": 36,
+        "3": 36,
+        "2": 36,
+        "5": 36,
+        "9": 36,
+        "0": 36,
+        "7": 36,
+        "4": 36,
+        "1": 36,
+        "8": 36
+      },
+      "lengths": {
+        "256": 120,
+        "512": 120,
+        "1024": 120
+      },
+      "skeleton_ids": [
+        "branch_t4",
+        "branch_t5",
+        "call_t4",
+        "call_t5",
+        "chain_t4",
+        "chain_t5"
+      ],
+      "sha256": "f1e865071843511640a9551e3db3f38f666d94476a88a922ce0a367734961d2b"
+    },
+    "test": {
+      "samples": 540,
+      "labels": {
+        "1": 54,
+        "4": 54,
+        "6": 54,
+        "5": 54,
+        "8": 54,
+        "7": 54,
+        "2": 54,
+        "9": 54,
+        "3": 54,
+        "0": 54
+      },
+      "lengths": {
+        "256": 180,
+        "1024": 180,
+        "512": 180
+      },
+      "skeleton_ids": [
+        "branch_t6",
+        "branch_t7",
+        "call_t6",
+        "call_t7",
+        "chain_t6",
+        "chain_t7"
+      ],
+      "sha256": "03d1324195630a8e82c0b26f6a74f6421a61fb2a14f72b085af9b679fd52ecf3"
+    }
+  }
+}

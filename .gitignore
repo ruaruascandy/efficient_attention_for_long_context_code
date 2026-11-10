@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# Run artifacts (weights, logs, generated tables)
+runs/
+results/
+rechecked_*/
+reproduced_runs/
+reproduced_overfit/
+regenerated_data/
+
+# Weights and archives
+*.pt
+*.zip
+
+# Editor / OS
+.idea/
+.vscode/
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db

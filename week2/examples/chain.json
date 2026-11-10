@@ -1,0 +1,31 @@
+{
+  "id": "train_chain_t0_s20261137_l256",
+  "family_id": "train_chain_t0_s20261137",
+  "skeleton_id": "chain_t0",
+  "family": "chain",
+  "split": "train",
+  "seed": 20261137,
+  "code": "v064 = 7\nv097 = 5\nv100 = 6\nv051 = -1\nv255 = 1\nv080 = 4\nv224 = 8\nv050 = 3\nv234 = 3\nv151 = 1\nv145 = 6\nv197 = 7\nv227 = 2\nv186 = 2\nv246 = 6\nv001 = v051 + 2\nv108 = v001 + 3\nv249 = 0\nv008 = 6\nv226 = 2\nv225 = 3\nv142 = 5\nv130 = 1\nv131 = 4\n      \nresult = v108 + 3\n",
+  "target": "result",
+  "answer": 7,
+  "byte_length": 256,
+  "gold_static_spans": [
+    [
+      27,
+      36
+    ],
+    [
+      136,
+      151
+    ],
+    [
+      152,
+      167
+    ],
+    [
+      238,
+      255
+    ]
+  ],
+  "max_dependency_distance_bytes": 229
+}

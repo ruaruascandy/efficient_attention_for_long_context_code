@@ -1,0 +1,35 @@
+{
+  "id": "train_call_t1_s21361167_l256",
+  "family_id": "train_call_t1_s21361167",
+  "skeleton_id": "call_t1",
+  "family": "call",
+  "split": "train",
+  "seed": 21361167,
+  "code": "v240 = 3\nv052 = 1\nv204 = 7\nv125 = 4\nv043 = 7\nv079 = 5\nv227 = 7\nv150 = 2\nv205 = 6\nv016 = 5\nv109 = 8\nv147 = 2\nv090 = 6\nv064 = 3\nv009 = 4\nv084 = 8\nv184 = 2\nv176 = 7\nv137 = 5\ndef v066(p):\n    return (p - v064) + 3\nv058 = v066(v043)\nv063 = 3\n    \nresult = v058\n",
+  "target": "result",
+  "answer": 7,
+  "byte_length": 256,
+  "gold_static_spans": [
+    [
+      36,
+      44
+    ],
+    [
+      117,
+      125
+    ],
+    [
+      171,
+      209
+    ],
+    [
+      210,
+      227
+    ],
+    [
+      242,
+      255
+    ]
+  ],
+  "max_dependency_distance_bytes": 220
+}

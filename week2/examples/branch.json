@@ -1,0 +1,43 @@
+{
+  "id": "train_branch_t3_s22561127_l256",
+  "family_id": "train_branch_t3_s22561127",
+  "skeleton_id": "branch_t3",
+  "family": "branch",
+  "split": "train",
+  "seed": 22561127,
+  "code": "v237 = 2\nv095 = 8\nv077 = 8\nv083 = 1\nv074 = 4\nv231 = 2\nv049 = 2\nv111 = 9\nv066 = 8\nv086 = 4\nv132 = 3\ndef v102(p):\n    if v231 > v086:\n        return p - v083\n    else:\n        return p - v083\nv032 = 5\nv174 = 1\nv106 = 3\nv152 = v102(v077)\n      \nresult = v152\n",
+  "target": "result",
+  "answer": 7,
+  "byte_length": 256,
+  "gold_static_spans": [
+    [
+      18,
+      26
+    ],
+    [
+      27,
+      35
+    ],
+    [
+      45,
+      53
+    ],
+    [
+      81,
+      89
+    ],
+    [
+      99,
+      189
+    ],
+    [
+      217,
+      234
+    ],
+    [
+      242,
+      255
+    ]
+  ],
+  "max_dependency_distance_bytes": 238
+}
