@@ -16,6 +16,9 @@ regenerated_data/
 # Weights and archives
 *.pt
 *.zip
+*.tgz
+week3/_ref/qwen*/
+week3/dist/
 
 # Editor / OS
 .idea/
