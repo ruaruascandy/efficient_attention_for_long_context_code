@@ -150,6 +150,16 @@ class TestMutation(unittest.TestCase):
         self.assertLess(len(out), len(row["code"]))
         self.assertEqual(len(out), len(row["code"]) - sum(e - s for s, e in row["gold_static_spans"]))
 
+    def test_mutations_stay_in_the_10_way_readout(self):
+        # Regression: mutating a literal used to push the label to 10 and crash p_gold.
+        for r in core.load_split("test")[:60]:
+            mut = core.mutate_gold_value(r["code"], r["gold_static_spans"])
+            self.assertIsNotNone(mut, r["id"])
+            code, answer = mut
+            self.assertEqual(len(code), len(r["code"]), r["id"])
+            self.assertTrue(0 <= answer <= 9, (r["id"], answer))
+            self.assertNotEqual(answer, r["answer"], r["id"])
+
 
 class TestStats(unittest.TestCase):
     def test_wilson(self):

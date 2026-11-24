@@ -1,4 +1,4 @@
-﻿"""Week-3 model probe: frozen Qwen, fixed prompt, 10-way digit readout,
+"""Week-3 model probe: frozen Qwen, fixed prompt, 10-way digit readout,
 and a family of attention-visibility masks applied to every layer.
 
     python w3_run.py --model Qwen/Qwen2.5-Coder-7B-Instruct --limit 8 --modes full,window=64
@@ -160,13 +160,15 @@ def main() -> int:
     with per_item.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fields)
         writer.writeheader()
+        skipped = 0
         for k, row in enumerate(rows):
             code = row["code"]
             gold_answer = int(row["answer"])
             spans = row["gold_static_spans"]
             if a.ablate == "gold-value":
                 mut = core.mutate_gold_value(code, spans)
-                if mut is None:
+                if mut is None or not (0 <= mut[1] <= 9):
+                    skipped += 1
                     continue
                 code, gold_answer = mut
             elif a.ablate == "gold-drop":
@@ -241,7 +243,7 @@ def main() -> int:
         "lengths": a.lengths, "style": a.style, "modes": [mode_label(r) for r in recipes],
         "ablate": a.ablate, "layers": layers, "dtype": a.dtype, "attn": a.attn,
         "device": device, "torch": torch.__version__, "items": len(rows),
-        "seconds": round(time.time() - t0, 1),
+        "skipped": skipped, "seconds": round(time.time() - t0, 1),
     }
     (a.out / "meta.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
     print(json.dumps(meta, indent=2))

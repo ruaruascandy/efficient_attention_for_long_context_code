@@ -363,19 +363,24 @@ def mutate_gold_value(code: str, spans: Sequence[Sequence[int]]) -> tuple[str, i
 
     for start, end in spans:
         chunk = code[int(start):int(end)]
-        nums = list(re.finditer(r"(?<![A-Za-z_])\d+", chunk))
-        if not nums:
-            continue
-        m = nums[-1]
-        old = m.group(0)
-        new = str((int(old) + 1) % 10)
-        cand = code[:int(start)] + chunk[:m.start()] + new + chunk[m.end():] + code[int(end):]
-        if len(cand) != len(code):
-            continue
-        try:
-            return cand, int(interpret(cand))
-        except Exception:
-            continue
+        # Only single-digit literals keep the file length; try several deltas and
+        # keep a mutation only if the re-derived label stays inside the 10-way readout.
+        nums = [m for m in re.finditer(r"(?<![A-Za-z_])\d+", chunk) if len(m.group(0)) == 1]
+        for m in reversed(nums):
+            old = m.group(0)
+            for delta in (1, 2, 3, -1, -2, -3):
+                new = str((int(old) + delta) % 10)
+                if new == old:
+                    continue
+                cand = code[:int(start)] + chunk[:m.start()] + new + chunk[m.end():] + code[int(end):]
+                if len(cand) != len(code):
+                    continue
+                try:
+                    answer = int(interpret(cand))
+                except Exception:
+                    continue
+                if 0 <= answer <= 9:
+                    return cand, answer
     return None
 
 
