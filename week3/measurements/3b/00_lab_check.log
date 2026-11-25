@@ -1,0 +1,12 @@
+[PASS] python                   3.12.3 on Linux-6.8.0-136-generic-x86_64-with-glibc2.39
+[PASS] torch                    2.6.0+cu124
+[PASS] device                   NVIDIA RTX 4000 Ada Generation, 19.5 GB, 1 visible
+[PASS] transformers/tokenizers  4.57.1 / 0.22.2
+[PASS] required files           week1 data + interpreter + tokenizer present
+[WARN] disk                     9.3 GB free here (7B weights need ~16 GB)
+[PASS] tokenizer                151665 ids; digits are single tokens: True
+[PASS] prompt                   256 B program -> 180 tokens (completion style)
+[PASS] 4D mask passthrough      full==no-mask, window changes logits
+[PASS] weights                  /user/HS400/yc01972/models/qwen25coder3b (5.7 GB)
+
+Environment OK. Next: python -m unittest -v test_week3

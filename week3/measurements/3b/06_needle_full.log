@@ -1,0 +1,34 @@
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 102.62it/s]
+  20/240 items, 1s
+  40/240 items, 1s
+  60/240 items, 3s
+  80/240 items, 10s
+  100/240 items, 11s
+  120/240 items, 11s
+  140/240 items, 13s
+  160/240 items, 20s
+  180/240 items, 21s
+  200/240 items, 21s
+  220/240 items, 23s
+  240/240 items, 30s
+{
+  "model": "/user/HS400/yc01972/models/qwen25coder3b",
+  "random_model": false,
+  "split": "needle_test",
+  "lengths": [
+    0
+  ],
+  "style": "completion",
+  "modes": [
+    "full"
+  ],
+  "ablate": "none",
+  "layers": 36,
+  "dtype": "bfloat16",
+  "attn": "sdpa",
+  "device": "cuda",
+  "torch": "2.6.0+cu124",
+  "items": 240,
+  "skipped": 0,
+  "seconds": 29.9
+}

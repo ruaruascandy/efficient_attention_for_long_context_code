@@ -1,0 +1,26 @@
+{
+  "model": "/user/HS400/yc01972/models/qwen25coder3b",
+  "random_model": false,
+  "split": "needle_h1",
+  "lengths": [
+    0
+  ],
+  "style": "completion",
+  "modes": [
+    "full",
+    "window=64",
+    "window=256",
+    "gold_union=64",
+    "block=4",
+    "random=64"
+  ],
+  "ablate": "none",
+  "layers": 36,
+  "dtype": "bfloat16",
+  "attn": "sdpa",
+  "device": "cuda",
+  "torch": "2.6.0+cu124",
+  "items": 250,
+  "skipped": 0,
+  "seconds": 276.3
+}
