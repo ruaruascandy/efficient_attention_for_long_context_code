@@ -65,6 +65,7 @@ python w3_run.py --model <模型> --data-dir data --split needle_h1 --lengths 0 
 
 | 文件 | 作用 |
 |---|---|
+| `Week3_Experiment_Report_ZH.md` | 本周实验报告：门禁、天花板、可见性、紧邻对照、窗口扫描 |
 | `lab_check.py` | 新机器自检：环境、显存、必需文件、4D mask 是否真的生效 |
 | `run_all.sh` | 一条命令跑完 0–6 步，门禁不过就停 |
 | `LAB_SETUP_ZH.md` | 实验室机器上的完整步骤、显存/时间预算、排错表、Slurm 模板 |
