@@ -1,0 +1,18 @@
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 108.98it/s]
+   96 B  chain   n= 20 acc=0.05  wilson=[0.01,0.24]
+   96 B  call    n= 20 acc=0.40  wilson=[0.22,0.61]
+   96 B  branch  n=  0 acc=nan  wilson=[nan,nan]
+   96 B  overall n= 40 acc=0.23
+  160 B  chain   n= 20 acc=0.10  wilson=[0.03,0.30]
+  160 B  call    n= 20 acc=0.25  wilson=[0.11,0.47]
+  160 B  branch  n= 13 acc=0.69  wilson=[0.42,0.87]
+  160 B  overall n= 53 acc=0.30
+  256 B  chain   n= 20 acc=0.20  wilson=[0.08,0.42]
+  256 B  call    n= 20 acc=0.15  wilson=[0.05,0.36]
+  256 B  branch  n= 20 acc=0.25  wilson=[0.11,0.47]
+  256 B  overall n= 60 acc=0.20
+  512 B  chain   n= 20 acc=0.10  wilson=[0.03,0.30]
+  512 B  call    n= 20 acc=0.05  wilson=[0.01,0.24]
+  512 B  branch  n= 20 acc=0.05  wilson=[0.01,0.24]
+  512 B  overall n= 60 acc=0.07
+wrote results/3b/curve.csv

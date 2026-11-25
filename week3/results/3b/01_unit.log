@@ -1,0 +1,28 @@
+test_digit_readout_shape (test_week3.TestMaskedForward.test_digit_readout_shape) ... ok
+test_explicit_full_mask_equals_no_mask (test_week3.TestMaskedForward.test_explicit_full_mask_equals_no_mask) ... ok
+test_self_only_mask_changes_logits (test_week3.TestMaskedForward.test_self_only_mask_changes_logits) ... ok
+test_window_mask_changes_logits (test_week3.TestMaskedForward.test_window_mask_changes_logits) ... ok
+test_block_diagonal_is_a_true_cutoff (test_week3.TestMasks.test_block_diagonal_is_a_true_cutoff) ... ok
+test_causal (test_week3.TestMasks.test_causal) ... ok
+test_global_bridges_blocks (test_week3.TestMasks.test_global_bridges_blocks) ... ok
+test_gold_visibility_full (test_week3.TestMasks.test_gold_visibility_full) ... ok
+test_gold_visibility_window_cut (test_week3.TestMasks.test_gold_visibility_window_cut) ... ok
+test_line_starts (test_week3.TestMasks.test_line_starts) ... ok
+test_window_counts (test_week3.TestMasks.test_window_counts) ... ok
+test_window_receptive_field_matches_bfs (test_week3.TestMasks.test_window_receptive_field_matches_bfs) ... ok
+test_drop_spans (test_week3.TestMutation.test_drop_spans) ... ok
+test_gold_value_changes_answer_and_length (test_week3.TestMutation.test_gold_value_changes_answer_and_length) ... ok
+test_mutations_stay_in_the_10_way_readout (test_week3.TestMutation.test_mutations_stay_in_the_10_way_readout) ... ok
+test_chat_prompt_map (test_week3.TestPrompt.test_chat_prompt_map) ... ok
+test_completion_prompt_map (test_week3.TestPrompt.test_completion_prompt_map) ... ok
+test_span_inside_code (test_week3.TestPrompt.test_span_inside_code) ... ok
+test_mcnemar (test_week3.TestStats.test_mcnemar) ... ok
+test_paired_delta (test_week3.TestStats.test_paired_delta) ... ok
+test_wilson (test_week3.TestStats.test_wilson) ... ok
+test_digits_are_single_tokens (test_week3.TestTokenizer.test_digits_are_single_tokens) ... ok
+test_space_is_its_own_token (test_week3.TestTokenizer.test_space_is_its_own_token) ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 2.264s
+
+OK

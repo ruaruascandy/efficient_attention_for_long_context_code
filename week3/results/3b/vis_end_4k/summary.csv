@@ -1,0 +1,5 @@
+group,mode,ablate,n,accuracy,wilson_lo,wilson_hi,mean_connections,mean_gold_visible_frac,mean_gold_direct_frac,mean_gold_gap,mean_tokens
+needle_h1_d4000_end,full,none,50,0.9800,0.8950,0.9965,8207326.0,nan,nan,46.0,4051.0
+needle_h1_d4000_end,gold_union=64,none,50,0.7200,0.5833,0.8253,403767.0,nan,nan,46.0,4051.0
+needle_h1_d4000_end,random=64,none,50,0.1400,0.0695,0.2619,257248.0,nan,nan,46.0,4051.0
+needle_h1_d4000_end,window=64,none,50,0.9000,0.7864,0.9565,257248.0,nan,nan,46.0,4051.0
