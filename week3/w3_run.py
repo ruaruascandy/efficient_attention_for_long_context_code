@@ -161,7 +161,7 @@ def main() -> int:
     per_item = a.out / "per_item.csv"
     fields = ["id", "split", "byte_length", "family", "group", "style", "mode", "ablate",
               "n_tokens", "n_code_tokens", "connections", "conn_frac", "layers",
-              "gold_n", "gold_visible_frac", "gold_direct_frac", "gold_min_hops", "gold_max_hops",
+              "gold_n", "gold_gap", "gold_visible_frac", "gold_direct_frac", "gold_min_hops", "gold_max_hops",
               "pred", "gold", "correct", "p_gold", "margin", "entropy", "sec"]
     t0 = time.time()
 
@@ -214,7 +214,7 @@ def main() -> int:
                     "n_code_tokens": sum(1 for s, e in offsets if e > s and s >= prompt.code_start and e <= prompt.code_end),
                     "connections": core.connection_count(mask),
                     "conn_frac": core.connection_count(mask) / (n * (n + 1) / 2),
-                    "layers": layers, **vis,
+                    "layers": layers, "gold_gap": (n - 1 - min(gold_tokens)) if gold_tokens else "", **vis,
                     "pred": pred, "gold": gold_answer, "correct": int(pred == gold_answer),
                     "p_gold": float(probs[gold_answer]), "margin": margin, "entropy": ent, "sec": sec,
                 })
@@ -224,7 +224,7 @@ def main() -> int:
     # summary
     import collections
 
-    agg = collections.defaultdict(lambda: {"n": 0, "correct": 0, "conn": 0.0, "vis": 0.0, "direct": 0.0, "tok": 0.0})
+    agg = collections.defaultdict(lambda: {"n": 0, "correct": 0, "conn": 0.0, "vis": 0.0, "direct": 0.0, "gap": 0.0, "tok": 0.0})
     with per_item.open(encoding="utf-8") as fh:
         for r in csv.DictReader(fh):
             key = (r["group"], r["mode"], r["ablate"])
@@ -234,6 +234,8 @@ def main() -> int:
             g["conn"] += float(r["connections"])
             if r["gold_visible_frac"]:
                 g["vis"] += float(r["gold_visible_frac"])
+            if r["gold_gap"]:
+                g["gap"] += float(r["gold_gap"])
             if r["gold_direct_frac"]:
                 g["direct"] += float(r["gold_direct_frac"])
             g["tok"] += float(r["n_tokens"])
@@ -241,12 +243,12 @@ def main() -> int:
     with summary.open("w", newline="", encoding="utf-8") as fh:
         w = csv.writer(fh)
         w.writerow(["group", "mode", "ablate", "n", "accuracy", "wilson_lo", "wilson_hi",
-                    "mean_connections", "mean_gold_visible_frac", "mean_gold_direct_frac", "mean_tokens"])
+                    "mean_connections", "mean_gold_visible_frac", "mean_gold_direct_frac", "mean_gold_gap", "mean_tokens"])
         for (group, mode, ablate), g in sorted(agg.items(), key=lambda kv: (str(kv[0][0]), kv[0][1])):
             lo, hi = core.wilson(g["correct"], g["n"])
             w.writerow([group, mode, ablate, g["n"], f"{g['correct'] / g['n']:.4f}",
                         f"{lo:.4f}", f"{hi:.4f}", f"{g['conn'] / g['n']:.1f}",
-                        f"{g['vis'] / g['n']:.3f}", f"{g['direct'] / g['n']:.3f}", f"{g['tok'] / g['n']:.1f}"])
+                        f"{g['vis'] / g['n']:.3f}", f"{g['direct'] / g['n']:.3f}", f"{g['gap'] / g['n']:.1f}", f"{g['tok'] / g['n']:.1f}"])
     meta = {
         "model": a.model, "random_model": a.random_model, "split": a.split,
         "lengths": a.lengths, "style": a.style, "modes": [mode_label(r) for r in recipes],

@@ -29,7 +29,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import w3_core as core  # noqa: E402
 
 
-def build_needle(seed: int, hops: int, target_tokens: int, tok, prefix: str = "n") -> dict:
+def build_needle(seed: int, hops: int, target_tokens: int, tok, prefix: str = "n",
+                 position: str = "start") -> dict:
     rng = random.Random(seed)
     deltas = [rng.choice([-3, -2, -1, 1, 2, 3]) for _ in range(hops)]
     total = sum(deltas)
@@ -45,8 +46,16 @@ def build_needle(seed: int, hops: int, target_tokens: int, tok, prefix: str = "n
         body.append((f"{names[h + 1]} = {names[h]} {op} {abs(deltas[h])}\n", True))
     final = f"result = {names[hops]}\n"
 
+    def layout(distractors: list[str]) -> list[tuple[str, bool]]:
+        """statements in emitted order, flagged when they carry evidence"""
+        fill = "".join(distractors)
+        if position == "end":
+            # same sequence length, but the definition sits next to the query
+            return [(fill, False)] + head + body + [(final, True)]
+        return head + [(fill, False)] + body + [(final, True)]
+
     def assemble(distractors: list[str]) -> str:
-        return "".join(t for t, _ in head) + "".join(distractors) + "".join(t for t, _ in body) + final
+        return "".join(t for t, _ in layout(distractors))
 
     # calibrate the number of irrelevant lines against the real tokenizer
     # Measure one filler line instead of guessing: Qwen tokenises every digit
@@ -71,15 +80,10 @@ def build_needle(seed: int, hops: int, target_tokens: int, tok, prefix: str = "n
     code = assemble(distractor_lines)
 
     spans, cursor = [], 0
-    for text, _ in head:
-        spans.append([cursor, cursor + len(text.rstrip("\n").encode())])
+    for text, relevant in layout(distractor_lines):
+        if relevant:
+            spans.append([cursor, cursor + len(text.rstrip("\n").encode())])
         cursor += len(text.encode())
-    cursor += sum(len(d.encode()) for d in distractor_lines)
-    for text, _ in body:
-        spans.append([cursor, cursor + len(text.rstrip("\n").encode())])
-        cursor += len(text.encode())
-    spans.append([cursor, cursor + len(final.rstrip("\n").encode())])
-    cursor += len(final.encode())
 
     if len(code.encode()) != cursor:
         raise AssertionError(f"length mismatch {len(code.encode())} != {cursor}")
@@ -89,11 +93,12 @@ def build_needle(seed: int, hops: int, target_tokens: int, tok, prefix: str = "n
     if interpret(code) != answer:
         raise AssertionError("label mismatch")
     return {
-        "id": f"needle_h{hops}_d{target_tokens}_s{seed}",
-        "family_id": f"needle_h{hops}_d{target_tokens}",
+        "id": f"needle_h{hops}_d{target_tokens}_{position}_s{seed}",
+        "family_id": f"needle_h{hops}_d{target_tokens}_{position}",
         "skeleton_id": f"needle_h{hops}", "family": "needle", "split": "needle",
         "seed": seed, "code": code, "target": "result", "answer": answer,
         "byte_length": len(code.encode()), "hops": hops, "target_tokens": target_tokens,
+        "position": position,
         "gold_static_spans": spans,
     }
 
@@ -104,6 +109,8 @@ def main() -> int:
     ap.add_argument("--hops", type=int, nargs="+", default=[1, 2, 3])
     ap.add_argument("--per", type=int, default=20)
     ap.add_argument("--split", default="needle_test")
+    ap.add_argument("--position", default="start", choices=["start", "end"],
+                    help="end = same length, but the definition sits next to the query")
     ap.add_argument("--out", type=Path, default=core.W3 / "data")
     a = ap.parse_args()
 
@@ -112,14 +119,16 @@ def main() -> int:
     for hops in a.hops:
         for dist in a.distances:
             for i in range(a.per):
-                rows.append(build_needle(1000 * hops + dist + i, hops, dist, tok))
+                rows.append(build_needle(1000 * hops + dist + i, hops, dist, tok,
+                                         position=a.position))
     a.out.mkdir(parents=True, exist_ok=True)
     path = a.out / f"{a.split}.jsonl"
     path.write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
     # convenience slices so w3_run can target one depth without filtering
+    suffix = "" if a.position == "start" else f"_{a.position}"
     for hops in a.hops:
         sel = [r for r in rows if r["hops"] == hops]
-        (a.out / f"needle_h{hops}.jsonl").write_text(
+        (a.out / f"needle_h{hops}{suffix}.jsonl").write_text(
             "".join(json.dumps(r) + "\n" for r in sel), encoding="utf-8")
 
     for hops in a.hops:
