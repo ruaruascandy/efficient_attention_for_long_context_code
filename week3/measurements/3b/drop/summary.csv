@@ -1,2 +1,0 @@
-group,mode,ablate,n,accuracy,wilson_lo,wilson_hi,mean_connections,mean_gold_visible_frac,mean_gold_direct_frac,mean_tokens
-256,full,gold-drop,180,0.0889,0.0555,0.1395,10304.3,nan,nan,138.2
