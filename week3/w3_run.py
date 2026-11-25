@@ -16,6 +16,7 @@ import json
 import math
 import sys
 import time
+import zlib
 from pathlib import Path
 
 import torch
@@ -36,13 +37,18 @@ def parse_mode(spec: str):
         return ("block", {"lines": int(rest)})
     if name == "gold_union":
         return ("gold_union", {"w": int(rest)})
+    if name == "random":
+        # same per-row budget as window=W, but the W keys are drawn at random:
+        # separates "how many tokens are visible" from "which ones".
+        return ("random", {"w": int(rest)})
     if name == "local_global":
         w, kind, val = rest.split(":")
         return ("local_global", {"w": int(w), "kind": kind, "val": int(val)})
     raise ValueError(f"unknown mode: {spec}")
 
 
-def build_mask(recipe, n: int, tok_line_starts: list[int], gold_tokens: list[int], device):
+def build_mask(recipe, n: int, tok_line_starts: list[int], gold_tokens: list[int], device,
+               seed: int = 0):
     name, p = recipe
     if name == "full":
         return core.mask_full(n, device)
@@ -53,6 +59,8 @@ def build_mask(recipe, n: int, tok_line_starts: list[int], gold_tokens: list[int
     if name == "gold_union":
         # window plus every evidence token visible (dependency-oracle upper bound).
         return core.mask_local_global(n, p["w"], gold_tokens, device)
+    if name == "random":
+        return core.mask_random(n, p["w"], seed=seed, device=device)
     if name == "local_global":
         if p["kind"] == "first":
             globals_idx = list(range(min(p["val"], n)))
@@ -66,7 +74,7 @@ def build_mask(recipe, n: int, tok_line_starts: list[int], gold_tokens: list[int
 
 def mode_label(recipe) -> str:
     name, p = recipe
-    if name in ("full", "window", "block", "gold_union"):
+    if name in ("full", "window", "block", "gold_union", "random"):
         return name if not p else f"{name}={p.get('w', p.get('lines'))}"
     return f"local_global={p['w']}:{p['kind']}:{p['val']}"
 
@@ -185,7 +193,8 @@ def main() -> int:
             tok_lines = core.char_to_token_starts(line_chars, offsets, 0)
 
             for recipe in recipes:
-                mask = build_mask(recipe, n, tok_lines, gold_tokens, device)
+                mask = build_mask(recipe, n, tok_lines, gold_tokens, device,
+                                  seed=zlib.crc32(row["id"].encode()))
                 t1 = time.time()
                 probs, margin, ent = digit_scores(model, ids, mask, device, dids)
                 sec = time.time() - t1

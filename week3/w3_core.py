@@ -150,6 +150,25 @@ def mask_local_global(n: int, w: int, globals_idx: Sequence[int], device=None):
     return m
 
 
+def mask_random(n: int, w: int, seed: int = 0, device=None):
+    """Same per-row budget as `mask_window(n, w)`, but the keys are drawn at random.
+
+    Control for "how many tokens are visible" vs "which ones": if accuracy under
+    this mask matches a window of the same width, the pattern carries no
+    information; if it is much worse than gold_union, placement is what matters.
+    """
+    import torch
+
+    g = torch.Generator().manual_seed(int(seed) & 0x7FFFFFFF)
+    causal = mask_full(n)
+    scores = torch.rand(n, n, generator=g).masked_fill(~causal, -1.0)
+    k = min(int(w), n)
+    idx = scores.topk(k, dim=1).indices
+    m = torch.zeros(n, n, dtype=torch.bool).scatter_(1, idx, True)
+    m &= causal
+    return m.to(device)
+
+
 def mask_line_block(n: int, line_starts: Sequence[int], block_lines: int, sinks: int = 0, device=None):
     """Block-diagonal over groups of `block_lines` source lines: a true cutoff.
 
