@@ -30,6 +30,9 @@ All runs used Qwen2.5-Coder-3B-Instruct, frozen, bfloat16, RTX 4000 Ada (19.5 GB
 
 ## Note on git
 
-`results/` is covered by the repository-wide ignore rule, so these files were added
-with `git add -f`. Re-running an experiment rewrites `summary.csv` in place; commit
-it again with `git add -f week3/results` if the numbers change.
+These files are **tracked** (added once with `git add -f`, which is needed only to
+break the repository-wide `results/` ignore rule the first time). Because they are
+tracked, later runs that rewrite `summary.csv` show up as ordinary modifications:
+commit them with `git add week3/results` — no `-f` needed. A *new* run directory
+(e.g. `results/3b/vis_goldwin2/`) is still covered by the ignore rule and does need
+`git add -f` once.
