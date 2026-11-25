@@ -49,17 +49,25 @@ def build_needle(seed: int, hops: int, target_tokens: int, tok, prefix: str = "n
         return "".join(t for t, _ in head) + "".join(distractors) + "".join(t for t, _ in body) + final
 
     # calibrate the number of irrelevant lines against the real tokenizer
-    distractor_lines: list[str] = []
-    k = 0
-    for _ in range(12):
-        code = assemble(distractor_lines)
-        n_tok = len(tok.encode(code, add_special_tokens=False))
-        if n_tok >= target_tokens + 40:
+    # Measure one filler line instead of guessing: Qwen tokenises every digit
+    # separately, so a line is ~13 tokens, not the ~7.5 that byte length suggests.
+    def filler(k: int) -> str:
+        return f"d{seed % 1000:03d}{k:05d} = {rng.randint(0, 9)}\n"
+
+    base_tokens = len(tok.encode(assemble([]), add_special_tokens=False))
+    per_line = max(1, len(tok.encode(assemble([filler(0)]), add_special_tokens=False)) - base_tokens)
+    target_total = target_tokens + 40
+    distractor_lines = [filler(k) for k in range(max(0, round((target_total - base_tokens) / per_line)))]
+    for _ in range(4):  # converge in a couple of steps if the estimate is off
+        n_tok = len(tok.encode(assemble(distractor_lines), add_special_tokens=False))
+        delta = int(round((target_total - n_tok) / per_line))
+        if abs(delta) < 1:
             break
-        need = (target_tokens + 40 - n_tok) / 7.5
-        for _ in range(max(1, int(need))):
-            distractor_lines.append(f"d{seed % 1000:03d}{k:05d} = {rng.randint(0, 9)}\n")
-            k += 1
+        if delta > 0:
+            start = len(distractor_lines)
+            distractor_lines += [filler(start + i) for i in range(delta)]
+        else:
+            distractor_lines = distractor_lines[: max(0, len(distractor_lines) + delta)]
     code = assemble(distractor_lines)
 
     spans, cursor = [], 0
