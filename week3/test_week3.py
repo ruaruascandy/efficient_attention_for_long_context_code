@@ -89,6 +89,19 @@ class TestMasks(unittest.TestCase):
         m = core.mask_window(n, 3)
         self.assertEqual(core.connection_count(m), sum(min(3, i + 1) for i in range(n)))
 
+    def test_random_mask_matches_window_budget(self):
+        # random=W must be a pure placement control: identical per-row degree.
+        n = 60
+        for w in (1, 4, 16):
+            r = core.mask_random(n, w, seed=3)
+            win = core.mask_window(n, w)
+            self.assertTrue(torch.equal(r.sum(1), win.sum(1)), w)
+            self.assertEqual(core.connection_count(r), core.connection_count(win), w)
+            self.assertEqual(int((r & ~core.mask_full(n)).sum()), 0, w)  # causal only
+            self.assertTrue(torch.equal(r, core.mask_random(n, w, seed=3)))  # reproducible
+        self.assertFalse(torch.equal(core.mask_random(n, 8, seed=3),
+                                     core.mask_random(n, 8, seed=4)))
+
     def test_window_receptive_field_matches_bfs(self):
         for w in (1, 2, 3, 5, 8):
             for layers in (1, 2, 3, 7):
