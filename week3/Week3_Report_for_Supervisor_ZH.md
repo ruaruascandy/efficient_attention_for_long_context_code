@@ -44,7 +44,7 @@
 | `block=3` | 每 3 行一块，块内可见、块间永不可见 | 4,5,6 | **不能**（缺行 1） |
 | `gold_union=2` | `window=2` **∪ 全部 gold 行设为全局可见** | 1,4,5,6 | **能** |
 
-这张表就是全部原理：
+这张表就是全部原理（每种模式的论文出处见 §2.6）：
 
 - `window` 与 `random` 是**同等预算**的两种放法（都看 2 行），一个按位置、一个随机；
 - `block` 是**真正的切断**：块与块之间连"逐层传递"都没有；
@@ -90,6 +90,26 @@
 - 层数 36。窗口掩码在理论上会让信息"逐层接力"：感受野 = 1 + 36 × (64 − 1) = 2,269 token。这是理论可达性，**实测中模型用不上**（见 §4 表 4）。
 - 所有掩码下 token 序列完全一致，只有注意力可见性不同。
 
+### 2.6 各模式的文献出处
+
+这些模式不是我们发明的，每一种都有明确的论文来源；我们只做了两处改动，并在最后一列标出。
+
+| 本报告的模式 | 出处 | 原论文中的形态 | 我们的用法与差异 |
+|---|---|---|---|
+| `full` | Vaswani et al., 2017 [1] | 标准全注意力，复杂度 O(n²) | 作为天花板基线 |
+| `window=W` | Longformer（Beltagy et al., 2020）[2] 的 sliding window；Mistral 7B（Jiang et al., 2023）[3] 的 SWA；StreamingLLM（Xiao et al., 2023）[4] 的 window+sink | 每个位置只看相邻 W 个 token | 相同；未加 attention sink |
+| `local_global` / `gold_union` | Longformer 的 **global attention** [2]；BigBird 的 global tokens（Zaheer et al., 2020）[5] | 少数 token 设为全局：可看全部、也被全部看 | 相同机制；但**全局集合由 gold 标注指定**，因此是 oracle 上界，不是可部署方法 |
+| `random=W` | BigBird 的 **random attention** 组件 [5] | 在窗口之外随机连一部分位置 | 只借"随机位置"这一想法；我们的实现是**与 window 等预算的对照**，不是 BigBird 的完整稀疏模式 |
+| `block=L` | Image Transformer 的 local attention（Parmar et al., 2018）[6]；Sparse Transformer 的块状固定模式（Child et al., 2019）[7]；BP-Transformer（Qiu et al., 2019）[8] | 块内全连接、块间不连接 | 相同；块按源码行切分，块间**永不**相连 |
+
+三点说明：
+
+1. **`gold_union` 没有对应的论文方法。** 它把 Longformer/BigBird 的"全局 token"机制接上 gold 标注，得到的是"信息完备的可见性"，属于上界构造。Longformer 选的是 `[CLS]` 与问题 token（不需要标注），我们选的是证据语句（需要标注）——这正是"方法"与"上界"的区别。
+2. **`random=W` 是控制变量，不是 BigBird 的复现。** BigBird 的随机连接是稀疏模式的组成部分；我们的随机掩码严格控制"每行可见数与 window 相同"，只改变位置，用来分离"看得少"与"看错地方"。
+3. **文献的共识是"稀疏注意力必须与训练配套"。** Longformer、BigBird、Mistral 都是在训练时就使用各自的稀疏模式；本报告第 4 节的实验正是检验"不训练、只事后改掩码"会发生什么。相关综述见 Tay et al., 2022 [9]。
+
+**与已有工作的关系。** Lost in the Middle（Liu et al., 2023）[10] 报告的是**全注意力**下的位置效应：关键信息落在上下文中段时准确率下降。本周测的是**稀疏掩码**下证据距离的影响，两者现象相关但设置不同：我们的 `full` 列在 4,051 token 上不掉，说明在这个任务上"定义在开头、查询在结尾"这个方向的距离不构成障碍；我们**没有测试证据落在中段**的情形，因此不能据此否定位置效应。
+
 ---
 
 ## 3. 实验设置
@@ -104,6 +124,8 @@
 | 统计 | 每格 50 条（表 2、表 3 为 20 条/格），括号内为 Wilson 95% 区间；**±10 个百分点以内的差异不解释** |
 
 **门禁**：在比较任何掩码之前，先确认读出口没坏——一行 `result = x + y`（trivial）、真实程序 + 注释写出答案（leak）、真实程序（real）。
+
+数据 B 的结构与长上下文评测里的 Needle-in-a-Haystack 同构（Kamradt, 2023 [12]；RULER，Hsieh et al., 2024 [11]）：把一个"针"（此处是一行定义）放在可控距离外，再看模型能否取回。区别是这里的答案不是逐字复制，而是**沿依赖链做一次整数运算后输出 0–9 的数字**，因此可以用 10 路读出口给出唯一判定，不需要人工或模型评分。
 
 ---
 
@@ -245,6 +267,34 @@
 4. **可选的机制探针**：在 `full` 下测量读出口落在 gold token 上的注意力占比随距离的变化，为"看得见但用不上"提供直接证据。
 
 ---
+
+## 参考文献
+
+[1] Vaswani, A., et al. *Attention Is All You Need.* NeurIPS 2017. arXiv:1706.03762
+
+[2] Beltagy, I., Peters, M. E., Cohan, A. *Longformer: The Long-Document Transformer.* arXiv:2004.05150, 2020.
+
+[3] Jiang, A. Q., et al. *Mistral 7B.* arXiv:2310.06825, 2023.
+
+[4] Xiao, G., Tian, Y., Chen, B., Han, S., Lewis, M. *Efficient Streaming Language Models with Attention Sinks.* arXiv:2309.17453, 2023.
+
+[5] Zaheer, M., et al. *Big Bird: Transformers for Longer Sequences.* NeurIPS 2020. arXiv:2007.14062
+
+[6] Parmar, N., et al. *Image Transformer.* ICML 2018. arXiv:1802.10567
+
+[7] Child, R., Gray, S., Radford, A., Sutskever, I. *Generating Long Sequences with Sparse Transformers.* arXiv:1904.10509, 2019.
+
+[8] Qiu, J., et al. *BP-Transformer: Modelling Long-Range Context via Binary Partitioning.* arXiv:1910.13051, 2019.
+
+[9] Tay, Y., Dehghani, M., Bahri, D., Metzler, D. *Efficient Transformers: A Survey.* ACM Computing Surveys, 2022. arXiv:2009.06732
+
+[10] Liu, N. F., et al. *Lost in the Middle: How Language Models Use Long Contexts.* TACL, 2023. arXiv:2307.03172
+
+[11] Hsieh, C.-P., et al. *RULER: What's the Real Context Size of Your Long-Context Language Models?* arXiv:2404.06654, 2024.
+
+[12] Kamradt, G. *Needle in a Haystack: Pressure Testing LLMs.* 2023. https://github.com/gkamradt/LLMTest_NeedleInAHaystack
+
+*说明：引用只用于标明各注意力模式的出处与共识，不构成对本周方法新颖性的论证。*
 
 ## 附录：复现
 
