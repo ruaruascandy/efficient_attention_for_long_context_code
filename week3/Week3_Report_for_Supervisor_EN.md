@@ -18,7 +18,7 @@ With the weights **frozen** and the prompt, programs and answer scoring held fix
 
 ---
 
-## 2. Six masks: principle and a minimal example
+## 2. Six mask families: principle and a minimal example
 
 ### 2.1 A six-line program
 
@@ -35,7 +35,7 @@ The answer is 5 (`7 - 2`). To get it right the model must use lines 1, 4 and 6. 
 
 Every mask below changes only **which positions can see which**, never the token sequence.
 
-### 2.2 The six masks on this program
+### 2.2 The six mask families on this program
 
 | Mask | Rule | Line 6 (readout) can directly see | Answers correctly? |
 |---|---|---|---|
@@ -52,6 +52,8 @@ This table is the whole principle (paper provenance in §2.6):
 - `block` is a **true cut-off**: blocks cannot exchange information even through depth;
 - `local_global` and `gold_union` **share one mask mechanism** (window + a few global tokens); they differ only in **how the global set is chosen** — a fixed rule versus gold annotations. The former is deployable but does not know where the evidence is; the latter does, and is therefore a diagnostic control rather than a method;
 - the `local_global` row is not hypothetical: the value `7` is the third token of `a = 7`, so a line-start global exposes `a`. The real experiment shows the same effect — at 4,051 tokens every line start costs 17.5% of the connections and gives 6% (Table 8).
+
+> **Where the six families appear in the results**: Table 4 carries `full`, `window` (two widths), `random`, `block` and `gold_union`; `local_global` has three variants and is reported separately in **Table 8** next to `gold_union`, because it answers a different question — not "how much recovers" but "can deployable fixed anchors replace the completeness control".
 
 > For readability this section counts **lines**; the real experiments count **tokens** (a Python line is about 13 Qwen tokens, because every digit is a separate token). The rules are identical.
 
@@ -181,7 +183,7 @@ Dataset B is structurally the same as the "needle in a haystack" long-context ev
 
 **Conclusion 3**: depth is the bottleneck, not distance; the one-hop task is the right platform.
 
-### Table 4 — Six masks × five distances (n = 50, one hop)
+### Table 4 — Five masks × five distances (n = 50, one hop; two window widths are shown, `local_global` is in Table 8)
 
 | Distance (tok) | full | window=64 | window=256 | random=64 | gold_union=64 | block=4 |
 |---:|---:|---:|---:|---:|---:|---:|
