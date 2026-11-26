@@ -14,7 +14,7 @@ With the weights **frozen** and the prompt, programs and answer scoring held fix
 - Holding sequence length fixed at 4,051 tokens and moving the definition next to the query lifts the same masks from 0% to **90%** — the failure is caused by **distance**, not by sequence length.
 - **Deployable fixed anchors** (every line start, the first four tokens) do not help: at 4,051 tokens every line start costs **17.5%** of the connections and still gives **6%**.
 
-**Implication.** Applying a sparse mask to a dense model at inference time cannot preserve long-range retrieval; to preserve it, the model has to be adapted during training.
+**Implication.** Applying a sparse mask to a dense model at inference time cannot preserve long-range retrieval. Whether **training can help the model use the remote connections it still has** is not tested here and is left to the next stage.
 
 ---
 
@@ -37,13 +37,13 @@ Every mask below changes only **which positions can see which**, never the token
 
 ### 2.2 The six mask families on this program
 
-| Mask | Rule | Line 6 (readout) can directly see | Answers correctly? |
+| Mask | Rule | Line 6 (readout) can directly see | Can the key value `7` be read directly? |
 |---|---|---|---|
-| `full` | every position sees itself and everything before | 1,2,3,4,5,6 | yes |
-| `window=2` | each position sees the previous 2 lines | 5,6 | **no** (lines 1, 4 missing) |
-| `random=2` | each row sees 2 positions, chosen at random | e.g. 2,6 | **no** (lines 1, 4 missing) |
-| `block=3` | one block per 3 lines; blocks never see each other | 4,5,6 | **no** (line 1 missing) |
-| `local_global=2` | `window=2` **∪ every line start made global** (a fixed rule, no labels) | 5,6 plus the **first token** of lines 1 and 4 (`a`, `d`) | **no** (the names are visible, not the values) |
+| `full` | every position sees itself and everything before | 1,2,3,4,5,6 | yes (line 1 is directly visible) |
+| `window=2` | each position sees the previous 2 lines | 5,6 | **no** (line 1 is outside) |
+| `random=2` | each row sees 2 positions, chosen at random | e.g. 2,6 | **no** |
+| `block=3` | one block per 3 lines; blocks never see each other | 4,5,6 | **no** (line 4 is visible but line 1's value is not) |
+| `local_global=2` | `window=2` **∪ every line start made global** (a fixed rule, no labels) | 5,6 plus the **first token** of lines 1 and 4 (`a`, `d`) | **no** (names, not values) |
 | `gold_union=2` | `window=2` **∪ every gold line made global** (from annotations) | 1,4,5,6 (whole lines) | **yes** |
 
 This table is the whole principle (paper provenance in §2.6):
@@ -169,19 +169,19 @@ Dataset B is structurally the same as the "needle in a haystack" long-context ev
 
 **Conclusion 2**: all four lengths land in 7–30%; none is usable. Comparing masks on a 20% baseline would produce differences that cannot be interpreted.
 
-### Table 3 — Full attention, depth × distance (n = 20)
+### Table 3 — Full attention, depth × distance (target bucket × 20 programs; reads the committed `data/needle_test.jsonl`)
 
-| Hops | 73 tok | 216 | 736 | 2,816 |
-|---|---:|---:|---:|---:|
-| 1 | 100% | 100% | 100% | **100%** |
-| 2 | 45% | 20% | 20% | 30% |
-| 3 | 20% | 5% | 5% | 5% |
+| Hops | target 20 | target 100 | target 400 | target 1,600 | measured length (four buckets) |
+|---|---:|---:|---:|---:|---|
+| 1 | 100% | 100% | 100% | **100%** | 73 / 216 / 736 / 2,816 |
+| 2 | 45% | 20% | 20% | 30% | 79 / 196 / 716 / 2,796 |
+| 3 | 20% | 5% | 5% | 5% | 85 / 189 / 709 / 2,789 |
 
 - the one-hop row is **100% everywhere**, including 2,816 tokens: the model handles long-distance single-hop retrieval;
 - two hops drop to 20–45%, three hops return to chance: **depth is the bottleneck**;
 - so every subsequent experiment uses one-hop data and treats distance as the variable.
 
-*Note: this table uses four distances and 20 programs per cell (targets 20/100/400/1,600), which is **not the same batch** as the five distances × 50 programs from Table 4 onwards; compare trends across tables, not individual numbers.*
+*Data version (important): this table reads the `data/needle_test.jsonl` generated and committed at `5ba9f1a`. The current generator was recalibrated at `6822708` (7.5 tokens per filler line → about 13 measured), so rebuilding with the same seeds gives different lengths — the longest bucket moves from 2,816 to 1,646, and only 21 of 240 programs are byte-identical. `run_all.sh` therefore no longer regenerates this file; the header now says "target bucket" and the measured lengths are listed per row.*
 
 **Conclusion 3**: depth is the bottleneck, not distance; the one-hop task is the right platform.
 
@@ -270,7 +270,9 @@ Connection comparison at 4,051 tokens: `every line start` uses **17.5%** of the 
 
 **The accurate mechanism statement.** `linestart` makes the **first token of each line** global (the first token of the variable name); the value `7` of the definition line, about the tenth token of that line, is **not made global directly**. In principle the value can travel two hops (a later global line start can read all earlier tokens, and the readout can read that line start), yet the model's measured accuracy in these 50 programs is only 6–14%. So what can be said is: **when the value token is not in the directly visible set, accuracy is low under this condition**; it cannot be claimed that the model "cannot see the value at all". Likewise, the problem with the first-4-token variant is not that the value is invisible, but that the global positions precede the evidence and cannot carry later information backwards.
 
-**Conclusion 9**: fixed structural anchors are not a deployable substitute for the completeness control. The line-start variant makes only the name's first token global; the first-4-token variant sits before the evidence and cannot relay forwards (§2.3). Turning the control's advantage into a deployable scheme requires **predicting which tokens carry the value** — the job of the Week-2 dependency analyser, not of any fixed structural rule.
+**A simpler positional rule already hits the evidence (this must be stated).** The generator's layout is fixed: the definition is always the first line and the computation chain always the last two. So the rule "**first line + last two lines**" — which reads no variable name and parses no code — matches the gold evidence spans **250/250** (in the near set it is "last three lines", 50/50). Table 8 therefore tests **the three anchors we chose**, not whether fixed rules can work.
+
+**Conclusion 9 (narrowed accordingly)**: the three fixed anchors tried here do not recover the ability — the line-start variant makes only the name's first token global, and the first-4-token variant sits before the evidence and cannot relay forwards (§2.3). But it **cannot** be claimed that "predicting the value-bearing tokens is necessary": another fixed positional rule (first line + last two lines) happens to hit the evidence exactly, and it needs no prediction at all. That shortcut is a defect of the data layout, not a victory for the method; Week 4 has to randomise the definition's position before the question "is prediction necessary" can be tested.
 
 ### Table 9 — Paired comparisons (same 50 programs)
 
@@ -325,6 +327,25 @@ Two regimes:
 
 **These 50 programs cannot decompose the "0% → 18%" step.** `gold_union` changes the connection count, the position and the global read/write pattern at the same time, and 9/3/6 are indistinguishable at n = 50 (p = 0.070 / 0.58). The report therefore does **not** claim that "most of the gain comes from connections"; what it can say is that **under a matched budget no demonstrable advantage of evidence visibility is observed at long distance**. Whether training-time adaptation can close the gap to full attention is the next question.
 
+### Table 11 — Can the value reach the readout, and does accuracy follow? (4,051 tokens, n = 50)
+
+Every comparison above treats "wrong" as one thing. This table splits it in two: **can the information reach the readout at all**, and **does the model use it once it arrives**. Starting from the value token of the definition, it expands along the connections the mask allows and counts how many of the 36 layers are needed to reach the readout.
+
+| Mask | Value token reachable within 36 layers | Minimum layers (programs) | Committed accuracy |
+|---|---|---|---|
+| `full` | 50/50 reachable | 1 layer (50) | 49/50 |
+| `window=64` | **50/50 unreachable** | — | **0/50** |
+| `random=64` | 50/50 reachable | 1 layer for 1, 2 layers for 48, 3 layers for 1 | **3/50** |
+| `gold_union=64` | 50/50 reachable | 1 layer (50) | **9/50** |
+
+This separates the three kinds of failure at 4,051 tokens:
+
+1. **`window=64`'s 0% is an information effect**: in all 50 programs the value token cannot reach the readout within 36 layers; the mask cuts the path.
+2. **`random=64`'s 3% and `gold_union=64`'s 9% are not information effects**: the path exists, and under `gold_union` it is a single direct hop, yet the model still answers only 3/50 and 9/50.
+3. So "wrong" has at least two causes — **invisible** (window) and **visible but unused** (random, gold_union). Week 3's conclusions must be written with that distinction, not as a blanket "sparse masks perform worse".
+
+*Scope: reachability shows that the number **can propagate** along the connections; it does not show that the model actually uses that path. The latter needs attention-weight evidence (§7 item 5). Reproduce with `w3_reach.py`, see the appendix.*
+
 ---
 
 ## 5. Conclusions and the cells that support them
@@ -341,11 +362,13 @@ Two regimes:
 | 8 | in the near condition the window beats random at equal budget (42:0, p ≈ 4.5×10⁻¹³), **because it contains the evidence** | Table 6 + Table 9 |
 | 9 | the failure is caused by distance | Table 6: same length, `window=64` 0% → 90%, `gold_union` 18% → 72% |
 | 10 | recovery needs a window of the same order as the distance | Table 7 + Table 9: 512 vs 64 is 30:0 (p ≈ 1.9×10⁻⁹) |
-| 11 | fixed structural anchors cannot replace the completeness control | Table 8: 17.5% connections → 6%; `gold_union=64` 4.9% → 18% (not budget-matched either) |
-| 12 | **post-hoc sparse masking is not viable** | follows from 5 + 6 + 9: visibility is necessary but not sufficient |
-| 13 | paired data require a paired test: the near `window` vs `gold_union` Wilson intervals overlap, yet the pairing is 12:3 (p = 0.035) | Table 6 + Table 9 (uncorrected, to be replicated) |
-| 14 | **`gold_union` is not an accuracy upper bound**: 72% in the near condition, below the window's 90%; it guarantees completeness only | Table 6 + Table 9 |
-| 15 | **the budget-matched control is done**: up to 450 tokens position remains decisive at equal budget (46:0, 41:0); from 1,646 tokens no demonstrable advantage, and 9/3/6 at 4,051 cannot decompose the "0% → 18%" step | Table 10 (`window=100` / `random=100` within 2% of `gold_union=64`) |
+| 11 | the three fixed anchors tried here all fail; but **another fixed rule (first line + last two lines) hits the evidence 250/250**, so "predicting the value-bearing tokens is necessary" does not follow | Table 8 + the layout note after it |
+| 12 | at 4,051 tokens "wrong" splits in two: `window=64` is **information-unreachable** (50/50 within 36 layers), `random=64` / `gold_union=64` are **reachable but unused** (3/50, 9/50) | Table 11 |
+| 13 | **post-hoc sparse masking is not viable** | follows from 5 + 6 + 9, with the failure types separated as in 12 |
+| 14 | paired data require a paired test: the near `window` vs `gold_union` Wilson intervals overlap, yet the pairing is 12:3 (p = 0.035) | Table 6 + Table 9 (uncorrected, to be replicated) |
+| 15 | **`gold_union` is not an accuracy upper bound**: 72% in the near condition, below the window's 90%; it guarantees completeness only | Table 6 + Table 9 |
+| 16 | **the budget-matched control is done**: up to 450 tokens position remains decisive at equal budget (46:0, 41:0); from 1,646 tokens no demonstrable advantage, and 9/3/6 at 4,051 cannot decompose the "0% → 18%" step | Table 10 (`window=100` / `random=100` within 2% of `gold_union=64`) |
+| 17 | **the data layout has shortcuts**: first line + last two lines matches gold 250/250, and the variable name encodes the seed and step, so in principle the answer is derivable from the last line alone | layout note after Table 8 and §6; Week 4 must randomise positions and decouple names from values |
 
 ---
 
@@ -361,6 +384,8 @@ Two regimes:
 | **`random=W` was not reproducible** | the seed came from `crc32(row["id"])`; adding the `start/end` suffix changed all 250 seeds, so a re-run produced a different random graph | fixed: the seed now comes from the program's `seed` field and the mask width, independent of the id. The `random` columns were re-run; `window`, `block`, `gold_union`, `local_global` and `full` are unaffected |
 | no multiplicity correction | about 20 paired comparisons; p = 0.035 / 0.039 / 0.070 do not survive correction | stated in Table 9; these are leads, not conclusions |
 | small paired samples | at n = 50, 15 discordant pairs put p near 0.03 | discordant counts and p are both listed |
+| **the data layout can be hit by a fixed rule** | the generator always puts the definition first and the chain last, so "first line + last two lines" matches gold 250/250 (near set: last three lines, 50/50); Table 8 can only show that *our three anchors* fail, not that fixed rules cannot work | stated after Table 8; Week 4 randomises positions before testing whether prediction is necessary |
+| **the naming scheme encodes the values** | variable names carry `seed % 100000` and the step index, and the generator derives both the initial value and the operation from the same seed, so in principle the answer is computable from the last line alone (250/250 far, 50/50 near, 240/240 depth set) | a data-design leak, not a path a model can plausibly take (reproducing the PRNG is beyond an LLM), yet there is no evidence the model *does not* use it; Week 4 must decouple names from values and add "same name, same distractor, only the remote value changes" pairs |
 | the two Week-2 selectors are indistinguishable on this data | 250 one-hop programs, three budgets: `structure_topk` and `evidence_groups` select **identical blocks** (250/250), so this week involves no selector comparison | this week measures information visibility, not selector quality; the 150/250 at 64 bytes is a **feasibility ratio** (at d100/d400 the remote evidence spans two 64-byte blocks and needs 128 bytes), and on feasible programs both are 100% complete |
 
 ---
@@ -369,11 +394,12 @@ Two regimes:
 
 The two methodological patches left over from this week (the seed re-run and the budget-matched control) are done; the ordering below reflects that.
 
-1. **Stop tuning mask parameters.** With frozen weights the long-distance loss cannot be repaired by making evidence visible, and the matched-budget control further shows that at long distance even "evidence visible" is not a measurable gain.
-2. **Move to training-time adaptation.** LoRA-tune the 3B model while training with the `window=64` / `gold_union=64` masks, and test whether the 18% at 4 k can be raised above 80%.
-3. **Measure `analyzer_union` instead of comparing the two selectors again.** Replace `gold_union`'s gold spans with the spans produced by the Week-2 `analyze()` under the same mask rule and budget, which quantifies the cost of an imperfect analyser. The two selectors pick identical blocks on this data (§6), so comparing them yields nothing; what carries information is **the gap between analyser spans and gold spans**.
-4. **Measure the dependency-distance distribution of real code.** If almost all dependencies are ≤512 tokens, "window 512 + a few global anchors" is adequate in practice — a stronger claim than "no loss on a synthetic task".
-5. **Optional mechanism probe.** Under full attention, measure the attention mass from the readout onto the gold tokens as a function of distance, to give direct evidence for "visible but unusable".
+1. **Fix the data design before anything else.** This data has two shortcuts: a fixed layout (first line + last two lines hit the evidence) and names that encode the values (variable name = seed + step). Week 4 must at least decouple names from values, randomise the position of the relevant definition, and add "same name, same distractor, only the remote value changes" pairs to test whether the model actually reads the remote number. Split train and test by base program.
+2. **Stop tuning mask parameters.** With frozen weights the long-distance loss cannot be repaired by making evidence visible, and the matched-budget control further shows that at long distance even "evidence visible" is not a measurable gain.
+3. **Move to training-time adaptation.** LoRA-tune the 3B model while training with the `window=64` / `gold_union=64` masks, and test whether the 18% at 4 k can be raised above 80%. **Note**: this asks whether training helps the model use the remote connections it still has; that is not answered here, and a score gain must be defended with the paired items from item 1.
+4. **Measure `analyzer_union` instead of comparing the two selectors again.** Replace `gold_union`'s gold spans with the spans produced by the Week-2 `analyze()` under the same mask rule and budget, which quantifies the cost of an imperfect analyser. The two selectors pick identical blocks on this data (§6), so comparing them yields nothing; what carries information is **the gap between analyser spans and gold spans**.
+5. **Measure the dependency-distance distribution of real code.** If almost all dependencies are ≤512 tokens, "window 512 + a few global anchors" is adequate in practice — a stronger claim than "no loss on a synthetic task".
+6. **Optional mechanism probe.** Under full attention, measure the attention mass from the readout onto the gold tokens as a function of distance, to give direct evidence for "visible but unused" (the `random` and `gold_union` rows of Table 11).
 
 ---
 
@@ -438,7 +464,14 @@ python w3_paired.py --run results/vis_end_4k   --left window=64 --right gold_uni
 python w3_paired.py --run results/vis_goldwin  --left gold_union=512 --right gold_union=64
 python w3_paired.py --run results/vis_matched  --left gold_union=64 --right window=100
 python w3_paired.py --run results/vis_matched  --left gold_union=64 --right random=100
+
+# table 11: can the value token reach the readout within 36 layers
+python w3_reach.py --data data/needle_h1.jsonl --target 4000 \
+    --modes full,window=64,random=64,gold_union=64 \
+    --run results/vis_h1_final --group-filter d4000
 ```
+
+**Data version**: Table 3 reads `data/needle_test.jsonl`, generated and committed at `5ba9f1a`. The current generator (recalibrated at `6822708`) rebuilds different lengths, so `run_all.sh` no longer regenerates that file; tables 4–11 use `data/needle_h1.jsonl`, which the current generator reproduces exactly.
 
 **On reproducing `random=W`**: the seed is derived from the program's own `seed` field and the mask width, never from the id string. Earlier versions seeded from the id, so adding the `start/end` suffix changed all 250 seeds and those numbers could not be reproduced; the `random` figures in this report were re-run with the fixed code (`results/vis_h1_final`, `results/vis_end_4k`). `window`, `block`, `gold_union`, `local_global` and `full` are unaffected.
 

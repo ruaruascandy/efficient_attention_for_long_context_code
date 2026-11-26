@@ -1,8 +1,8 @@
 # Week-3 run outputs
 
 Index of `results/` — which run backs which table in
-[Week3_Experiment_Report_EN.md](Week3_Experiment_Report_EN.md) /
-[Week3_Experiment_Report_ZH.md](Week3_Experiment_Report_ZH.md).
+[Week3_Report_for_Supervisor_EN.md](Week3_Report_for_Supervisor_EN.md) /
+[Week3_Report_for_Supervisor_ZH.md](Week3_Report_for_Supervisor_ZH.md).
 
 All runs used Qwen2.5-Coder-3B-Instruct, frozen, bfloat16, RTX 4000 Ada (19.5 GB).
 `summary.csv` is grouped; `per_item.csv` is one row per (program, mode);

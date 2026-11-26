@@ -102,6 +102,9 @@
 7. `gold_union` 与同宽窗口**不是等预算**：它多用 30–57% 的连接，"0% → 18%"这一步同时改了两个因素。已补 `window=100` / `random=100`（连接数相差 <2%，表 8）。原先"损失来自预算、与位置无关"的说法撤回：长距离格子同处下限，支撑不了这个结论；4,051 档也分解不了两个因素。
 8. `random=W` 的种子取自 `crc32(row["id"])`。给 id 加上 `start/end` 后缀后 250/250 条的种子全部改变，已提交的随机数字无法复现。已改为用程序自身的 `seed` 字段加掩码宽度做种子，并重跑了随机条件；重跑时只有 random 列变化，其余模式逐条不变，正好验证了改动范围。
 9. 报告曾把 `gold_union` 称为"准确率上界"。近端它 72%、普通窗口 90%（配对 12:3，p = 0.035），这个称呼是错的；它是证据完备性对照。
+10. 表 3 无法用当前生成器复现：`6822708` 改过填充行标定，重建后 240 条里只有 21 条源码一致、最长档从 2,816 变 1,646。已改为直接读入库的 `data/needle_test.jsonl`，表头改"目标档"，实测长度逐行列。
+11. 数据布局有两条捷径：定义固定在第一行、链固定在末尾两行，"首行 + 末两行"250/250 命中 gold；变量名编码了 seed 与步数，理论上可只读末行反推答案。前者使"必须预测承载值的 token"这一结论过强，已收紧；第 4 周需随机化位置并解耦命名与数值。
+12. 新增表 11：在 36 层内，`window=64` 的值 token 50/50 不可达（0%），`random=64` 与 `gold_union=64` 全部可达（分别 3/50、9/50）。"答错"因此分两类：看不到 vs 看得到但不用。
 
 核验
 
@@ -113,7 +116,7 @@
 
 产物
 
-`w3_core.py`、`w3_run.py`、`w3_gate.py`、`w3_needle.py`、`w3_curve.py`、`w3_preflight.py`、`lab_check.py`、`make_bundle.py`、`test_week3.py`、`run_all.sh`、`README.md`、`RESULTS.md`、`LAB_SETUP_ZH.md`、`Week3_Implementation_Guide_ZH.md`、`Week3_Experiment_Report_ZH.md`、`Week3_Experiment_Report_EN.md`、`_ref/tokenizer/`、`data/`（4 套）、`preflight/`、`results/`（41 个文件）。第 1 周依赖：`dataset.py` 与 `data/{test,validation}.jsonl`。
+`w3_core.py`、`w3_run.py`、`w3_gate.py`、`w3_needle.py`、`w3_curve.py`、`w3_preflight.py`、`w3_paired.py`、`w3_reach.py`、`lab_check.py`、`make_bundle.py`、`test_week3.py`、`run_all.sh`、`README.md`、`RESULTS.md`、`LAB_SETUP_ZH.md`、`Week3_Implementation_Guide_ZH.md`、`Week3_Report_for_Supervisor_ZH.md`、`Week3_Report_for_Supervisor_EN.md`、`_ref/tokenizer/`、`data/`（4 套）、`preflight/`、`results/`（41 个文件）。第 1 周依赖：`dataset.py` 与 `data/{test,validation}.jsonl`。
 
 下一步
 

@@ -65,13 +65,15 @@ python w3_run.py --model <模型> --data-dir data --split needle_h1 --lengths 0 
 
 | 文件 | 作用 |
 |---|---|
-| `Week3_Experiment_Report_ZH.md` | 本周实验报告（中文）：门禁、天花板、可见性、紧邻对照、窗口扫描 |
-| `Week3_Experiment_Report_EN.md` | same report in English, for the supervisor |
+| `Week3_Report_for_Supervisor_ZH.md` | **本周报告（中文，唯一版本）**：门禁、天花板、可见性、配对检验、等预算对照、可达性 |
+| `Week3_Report_for_Supervisor_EN.md` | the same report in English, for the supervisor |
 | `lab_check.py` | 新机器自检：环境、显存、必需文件、4D mask 是否真的生效 |
 | `run_all.sh` | 一条命令跑完 0–6 步，门禁不过就停 |
 | `LAB_SETUP_ZH.md` | 实验室机器上的完整步骤、显存/时间预算、排错表、Slurm 模板 |
 | `w3_core.py` `w3_run.py` | 核心：数据/tokenizer/prompt/mask/可达性；冻结模型评测 |
 | `w3_gate.py` `w3_curve.py` `w3_needle.py` `w3_preflight.py` | 门禁、天花板曲线、距离可控数据、无权重预检 |
+| `w3_paired.py` | 配对精确 McNemar：从 `per_item.csv` 复算表 9 的每个 p 值 |
+| `w3_reach.py` | 值 token 在 36 层内能否到达读出口（表 11） |
 
 ## 本地权重
 

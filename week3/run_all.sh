@@ -47,7 +47,16 @@ if [[ "${SKIP_CURVE:-0}" != "1" ]]; then
 fi
 
 # 3. depth x distance: where does a ceiling actually exist?
-run 05_needle_gen "$PY" w3_needle.py --distances 20 100 400 1600 --hops 1 2 3 --per 20
+#    The committed data/needle_test.jsonl was generated before the calibration fix
+#    (6822708); regenerating it would produce different lengths and silently change
+#    table 3, so the committed file is used as-is unless it is missing.
+if [[ -f data/needle_test.jsonl ]]; then
+  echo
+  echo "=== 05_needle_gen ==="
+  echo "using the committed data/needle_test.jsonl (generated at commit 5ba9f1a)"
+else
+  run 05_needle_gen "$PY" w3_needle.py --distances 20 100 400 1600 --hops 1 2 3 --per 20
+fi
 run 06_needle_full "$PY" w3_run.py --model "$MODEL" --data-dir data --split needle_test \
     --lengths 0 --group-by family_id --modes full --no-reach --out "$OUT/needle_full"
 

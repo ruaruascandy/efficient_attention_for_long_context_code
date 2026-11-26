@@ -102,6 +102,9 @@ Problems and decisions
 7. `gold_union` was not budget-matched: it uses 30–57% more connections than a window of the same width, so the "0% → 18%" step changed two things at once. Fixed by adding `window=100` / `random=100` (within 2% of its connection count, Table 8). The wording "the loss comes from the budget, not from placement" was withdrawn: the long-distance cells are at the floor and cannot support it, and the 4,051 cells cannot decompose the two factors.
 8. `random=W` was seeded from `crc32(row["id"])`. Adding the `start/end` suffix to the ids changed all 250 seeds, so the committed random numbers could not be reproduced. Fixed: the seed now comes from the program's `seed` field and the mask width; the `random` runs were repeated. Only the random columns moved, which also served as a check that nothing else was affected.
 9. The report called `gold_union` an "accuracy upper bound". At gap 46 it scores 72% against a window's 90% (paired 12:3, p = 0.035), so the name was wrong; it is an evidence-completeness control.
+10. Table 3 could not be rebuilt with the current generator: the calibration fix at `6822708` changes the lengths (only 21 of 240 programs identical, longest bucket 2,816 → 1,646). Fixed by reading the committed `data/needle_test.jsonl`, labelling the header "target bucket" and listing the measured lengths per row.
+11. The data has two shortcuts: the layout is fixed (first line + last two lines hit gold 250/250), and the variable names encode the seed and step, so in principle the answer follows from the last line alone. The first makes "predicting the value-bearing tokens is necessary" too strong; Week 4 randomises positions and decouples names from values.
+12. New Table 11: within 36 layers the value token is unreachable in 50/50 programs under `window=64` (0%) but reachable in all 50 under `random=64` and `gold_union=64` (3/50 and 9/50). "Wrong" therefore splits into invisible and visible-but-unused.
 
 Verification
 
@@ -113,7 +116,7 @@ Every table is produced by the commands in section 7 of the report; per-item rec
 
 Artifacts
 
-`w3_core.py`, `w3_run.py`, `w3_gate.py`, `w3_needle.py`, `w3_curve.py`, `w3_preflight.py`, `lab_check.py`, `make_bundle.py`, `test_week3.py`, `run_all.sh`, `README.md`, `RESULTS.md`, `LAB_SETUP_ZH.md`, `Week3_Implementation_Guide_ZH.md`, `Week3_Experiment_Report_ZH.md`, `Week3_Experiment_Report_EN.md`, `_ref/tokenizer/`, `data/` (4 sets), `preflight/`, `results/` (per-run records; see `RESULTS.md`). Week 1 dependency: `dataset.py` and `data/{test,validation}.jsonl`.
+`w3_core.py`, `w3_run.py`, `w3_gate.py`, `w3_needle.py`, `w3_curve.py`, `w3_preflight.py`, `w3_paired.py`, `w3_reach.py`, `lab_check.py`, `make_bundle.py`, `test_week3.py`, `run_all.sh`, `README.md`, `RESULTS.md`, `LAB_SETUP_ZH.md`, `Week3_Implementation_Guide_ZH.md`, `Week3_Report_for_Supervisor_ZH.md`, `Week3_Report_for_Supervisor_EN.md`, `_ref/tokenizer/`, `data/` (4 sets), `preflight/`, `results/` (per-run records; see `RESULTS.md`). Week 1 dependency: `dataset.py` and `data/{test,validation}.jsonl`.
 
 Next
 
