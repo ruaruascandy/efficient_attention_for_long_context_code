@@ -51,16 +51,26 @@ run 05_needle_gen "$PY" w3_needle.py --distances 20 100 400 1600 --hops 1 2 3 --
 run 06_needle_full "$PY" w3_run.py --model "$MODEL" --data-dir data --split needle_test \
     --lengths 0 --group-by family_id --modes full --no-reach --out "$OUT/needle_full"
 
+# 3b. regenerate needle_h1 as the 250-program, five-distance set used by tables 4, 8 and 10.
+#     This overwrites data/needle_h1.jsonl written by step 05 (80 programs, four distances).
+run 06b_needle_long "$PY" w3_needle.py --distances 20 100 400 1600 4000 --hops 1 \
+    --per 50 --split needle_long
+
 # 4. visibility comparison on the 1-hop set (the one with a real ceiling)
 run 07_vis_h1 "$PY" w3_run.py --model "$MODEL" --data-dir data --split needle_h1 \
-    --lengths 0 --group-by family_id \
+    --lengths 0 --group-by family_id --no-reach \
     --modes full,window=64,window=256,gold_union=64,block=4,random=64 --out "$OUT/vis_h1"
 
-# 4b. deployable fixed anchors vs the oracle (Table 8 in the report)
+# 4b. deployable fixed anchors vs the completeness control (Table 8)
 run 07b_vis_localglobal "$PY" w3_run.py --model "$MODEL" --data-dir data --split needle_h1 \
     --lengths 0 --group-by family_id --no-reach \
     --modes full,local_global=64:first:4,local_global=64:linestart:1,local_global=64:linestart:4 \
     --out "$OUT/vis_localglobal"
+
+# 4c. budget-matched control (Table 10): window=100 / random=100 vs gold_union=64
+run 07c_vis_matched "$PY" w3_run.py --model "$MODEL" --data-dir data --split needle_h1 \
+    --lengths 0 --group-by family_id --no-reach \
+    --modes full,window=64,window=100,random=100,gold_union=64 --out "$OUT/vis_matched"
 
 # 5. evidence dependence on the original harder set
 run 08_counterfactual "$PY" w3_run.py --model "$MODEL" --split test --lengths 256 \

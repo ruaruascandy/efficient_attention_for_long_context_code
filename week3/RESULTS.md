@@ -17,7 +17,9 @@ All runs used Qwen2.5-Coder-3B-Instruct, frozen, bfloat16, RTX 4000 Ada (19.5 GB
 | `3b/vis_h1_long/` | — | same experiment, earlier generator (distances 216–6,976) and `--no-reach` off; replication only | 50 |
 | `3b/vis_end_4k/` | Table 6 | same 4,051-token length, definition next to the query (gap ≈46) | 50 |
 | `3b/vis_goldwin/` | Table 7 | window sweep with gold tokens global (64/128/256/512) | 50 |
-| `3b/vis_localglobal/` | Table 8 | deployable fixed anchors (first 4 tokens, every line start, every 4th line start) vs the oracle | 50 |
+| `3b/vis_localglobal/` | Table 8 | deployable fixed anchors (first 4 tokens, every line start, every 4th line start) vs the completeness control | 50 |
+
+> **Note on `vis_localglobal`.** It was produced before step 07b existed, so it is not part of the first `results/` commit; the directory must be added with `git add -f week3/results/3b/vis_localglobal`. `run_all.sh` now regenerates it on the 250-program, five-distance set (step 06b), which is what Table 8 reports; the earlier `run_all.sh` regenerated only 80 programs over four distances and could not reproduce the table.
 | `3b/vis_matched/` | Table 10 | budget-matched control: `window=100` / `random=100` (~400,150 connections) against `gold_union=64` (403,867) | 50 |
 | `3b/vis_h1/` | — | preliminary pass of the same comparison, n=20, superseded by `vis_h1_final` | 20 |
 | `3b/cf/`, `3b/drop/` | §3.7 | counterfactual and deletion on the three-hop set — **uninterpretable**, the task itself is at 15% | 180 |
