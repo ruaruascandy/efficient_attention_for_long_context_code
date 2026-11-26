@@ -54,7 +54,13 @@ run 06_needle_full "$PY" w3_run.py --model "$MODEL" --data-dir data --split need
 # 4. visibility comparison on the 1-hop set (the one with a real ceiling)
 run 07_vis_h1 "$PY" w3_run.py --model "$MODEL" --data-dir data --split needle_h1 \
     --lengths 0 --group-by family_id \
-    --modes full,window=64,window=256,gold_union=64,block=4 --out "$OUT/vis_h1"
+    --modes full,window=64,window=256,gold_union=64,block=4,random=64 --out "$OUT/vis_h1"
+
+# 4b. deployable fixed anchors vs the oracle (Table 8 in the report)
+run 07b_vis_localglobal "$PY" w3_run.py --model "$MODEL" --data-dir data --split needle_h1 \
+    --lengths 0 --group-by family_id --no-reach \
+    --modes full,local_global=64:first:4,local_global=64:linestart:1,local_global=64:linestart:4 \
+    --out "$OUT/vis_localglobal"
 
 # 5. evidence dependence on the original harder set
 run 08_counterfactual "$PY" w3_run.py --model "$MODEL" --split test --lengths 256 \

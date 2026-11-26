@@ -17,6 +17,7 @@ All runs used Qwen2.5-Coder-3B-Instruct, frozen, bfloat16, RTX 4000 Ada (19.5 GB
 | `3b/vis_h1_long/` | — | same experiment, earlier generator (distances 216–6,976) and `--no-reach` off; replication only | 50 |
 | `3b/vis_end_4k/` | Table 6 | same 4,051-token length, definition next to the query (gap ≈46) | 50 |
 | `3b/vis_goldwin/` | Table 7 | window sweep with gold tokens global (64/128/256/512) | 50 |
+| `3b/vis_localglobal/` | Table 8 | deployable fixed anchors (first 4 tokens, every line start, every 4th line start) vs the oracle | 50 |
 | `3b/vis_h1/` | — | preliminary pass of the same comparison, n=20, superseded by `vis_h1_final` | 20 |
 | `3b/cf/`, `3b/drop/` | §3.7 | counterfactual and deletion on the three-hop set — **uninterpretable**, the task itself is at 15% | 180 |
 | `3b/vis_4k/` | §3.7 | 4 KB visibility on three-hop data — **uninterpretable**, full attention is already at chance | 60 |
