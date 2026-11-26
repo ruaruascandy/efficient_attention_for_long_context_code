@@ -193,8 +193,13 @@ def main() -> int:
             tok_lines = core.char_to_token_starts(line_chars, offsets, 0)
 
             for recipe in recipes:
+                # Seed from the program's own seed and the mask width, never from
+                # the id string: ids carry the position suffix (start/end), so an
+                # id-based seed silently changes the random mask when a variant is
+                # added, which would make earlier random=W numbers irreproducible.
+                rand_key = f"{row.get('seed', row['id'])}|{recipe[1].get('w', 0)}"
                 mask = build_mask(recipe, n, tok_lines, gold_tokens, device,
-                                  seed=zlib.crc32(row["id"].encode()))
+                                  seed=zlib.crc32(rand_key.encode()))
                 t1 = time.time()
                 probs, margin, ent = digit_scores(model, ids, mask, device, dids)
                 sec = time.time() - t1
