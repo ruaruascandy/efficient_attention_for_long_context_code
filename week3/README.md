@@ -1,4 +1,104 @@
-# week3 — 冻结 Qwen 的可见性实验（可运行脚手架）
+# week3 — visibility experiments on a frozen Qwen / 冻结 Qwen 的可见性实验
+
+**Language / 语言:** [English](#english) · [中文](#chinese)
+
+<a id="english"></a>
+
+## English
+
+Companion documents: [Week3_Implementation_Guide_EN.md](Week3_Implementation_Guide_EN.md) / [中文](Week3_Implementation_Guide_ZH.md); **running it on the lab machine**: [LAB_SETUP_EN.md](LAB_SETUP_EN.md) / [中文](LAB_SETUP_ZH.md). This file only covers how to run things.
+
+Nothing in this directory **trains** a model. It wires the Week-1 data, the Week-2 dependency analysis, Qwen's real tokenizer and a frozen Qwen together and measures four things:
+
+1. whether the readout works (the gate);
+2. at which task size a ceiling exists (depth × distance);
+3. whether the model actually depends on the distant evidence (counterfactual / deletion);
+4. how much ability survives once the visible range changes (full / window / local-global / block / gold-union).
+
+### First two commands on a new machine
+
+```bash
+python lab_check.py --model <checkpoint dir>   # environment + data + functional check of the 4-D mask
+bash run_all.sh                                # the four things above, 45–70 minutes in total
+```
+
+### Runs without model weights
+
+```bash
+cd week3
+python -m unittest -v test_week3        # 24 tests: tokenizer, span→token, masks, reachability, statistics
+python w3_preflight.py --lengths 256 1024 --make-length 4096 --sample 8 --layers 28 36
+```
+
+`w3_preflight.py` writes `preflight/preflight.md`: how long a program is under the Qwen tokenizer, how far the evidence sits from the readout, and the connection count and reachability of each mask. **Read that table before choosing a window size**, or it is easy to run a window on 256 B that in fact cuts nothing.
+
+The tokenizer is already in `_ref/tokenizer/` and works offline.
+
+### Needs a Qwen checkpoint
+
+Replace `<model>` below with a Hugging Face name (network required) or a local directory.
+
+```bash
+# 0. gate: readout + simple arithmetic + copying an answer
+python w3_gate.py --model <model> --style completion --limit 40
+
+# 1. ceiling curve
+python w3_curve.py  --model <model> --lengths 96 160 256 512 1024
+python w3_needle.py --distances 20 100 400 1600 --hops 1 2 3 --per 20
+python w3_run.py    --model <model> --data-dir data --split needle_h1 --lengths 0 \
+                    --group-by family_id --modes full --out results/needle_<tag>
+
+# 3. visibility comparison
+python w3_run.py --model <model> --data-dir data --split needle_h1 --lengths 0 \
+  --group-by family_id --modes full,window=64,window=256,gold_union=64,block=4 \
+  --out results/vis_<tag>
+```
+
+Each `--out` directory contains `per_item.csv` (per program), `summary.csv` (per group) and `meta.json` (configuration and timings).
+
+### Validation already run (`results/`)
+
+| File | Content |
+|---|---|
+| `results/gate.json`, `gate_15b.json` | 0.5B / 1.5B gate: trivial 95%/100%, leak 100%/92%, real 5%/5% |
+| `results/curve_15b.csv` | 1.5B on the three-hop task: 96–512 B all ≈10% |
+| `results/needle_15b/` | 1.5B, full attention: one hop 90–95% (up to 2,816 tokens), two hops 5–40%, three hops 5–10% |
+| `results/needle_masks_15b/` | full / window=64 / window=256 / gold_union=64 / block=4 on the same one-hop data |
+
+These validate the pipeline; they are not paper conclusions (20 programs per cell).
+
+### Files
+
+| File | Purpose |
+|---|---|
+| `Week3_Report_EN.md` | **this week's report (English)**: gate, ceiling, visibility, paired tests, budget-matched control, reachability |
+| `Week3_Report_ZH.md` | the same report in Chinese |
+| `Week3_Implementation_Guide_ZH.md` / `_EN.md` | implementation notes: five things that had to change, execution order, pitfalls, time budget |
+| `lab_check.py` | new-machine self-check: environment, memory, required files, whether the 4-D mask truly takes effect |
+| `run_all.sh` | one command for steps 0–6, stops when the gate fails |
+| `LAB_SETUP_ZH.md` / `LAB_SETUP_EN.md` | full lab-machine procedure, memory/time budget, troubleshooting, Slurm template |
+| `w3_core.py` `w3_run.py` | core: data / tokenizer / prompt / masks / reachability; frozen-model evaluation |
+| `w3_gate.py` `w3_curve.py` `w3_needle.py` `w3_preflight.py` | gate, ceiling curve, distance-controlled data, weight-free preflight |
+| `w3_paired.py` | paired exact McNemar: recomputes every p-value in Table 9 from `per_item.csv` |
+| `w3_reach.py` | can the value token reach the readout within 36 layers (Table 11) |
+
+### Local weights
+
+`_ref/qwen05b/` (about 1 GB) and `_ref/qwen15b/` (about 3 GB) exist only to smoke-test the pipeline (`--random-model` needs no weights at all). Delete them if you do not want 4 GB around, and point the commands at your own checkpoint.
+
+### Known pitfalls
+
+- The trailing space in `"# Output: "` is **its own token** (id 25). It must be put into the input before reading the ten digits at the next position; otherwise you read `"7"` rather than `" 7"`.
+- A window is not an information cut-off: stacking L layers gives a receptive field of `1 + L×(W−1)`. 256 B ≈ 203 tokens, so W=64 gives RF=1765 and cuts nothing. Use at least 4 KB to see an effect.
+- A 4-D bool mask is passed straight to `model(attention_mask=...)`, `True` = may attend. This transformers version forwards it unchanged to SDPA (`is_causal=False`).
+- The mask does **not** speed anything up: under dense SDPA it only drives some weights to zero. A real speed-up needs a different execution (block-sparse kernels) or fewer tokens.
+- The platform is AMD ROCm (RX 7900 XTX 24 GB): no flash-attn; inspecting attention weights requires `--attn eager`.
+
+---
+
+<a id="chinese"></a>
+
+## 中文
 
 配套说明见 [Week3_Implementation_Guide_ZH.md](Week3_Implementation_Guide_ZH.md) / [EN](Week3_Implementation_Guide_EN.md)；**换到实验室机器上跑**见 [LAB_SETUP_ZH.md](LAB_SETUP_ZH.md) / [EN](LAB_SETUP_EN.md)。这里只讲怎么跑。
 
@@ -9,18 +109,18 @@
 3. 模型是否真的依赖远处的证据（反事实 / 删除）；
 4. 改变注意力可见范围后还剩多少能力（full / window / local-global / block / gold-union）。
 
-## 在新机器上先跑这两行
+### 在新机器上先跑这两行
 
 ```bash
 python lab_check.py --model <权重目录>    # 环境 + 数据 + 4D mask 透传的功能验证
 bash run_all.sh                            # 上面四件事，全程约 45–70 分钟
 ```
 
-## 不需要模型权重就能跑
+### 不需要模型权重就能跑
 
 ```bash
 cd week3
-python -m unittest -v test_week3        # 22 项：tokenizer、span→token、mask、可达性、统计
+python -m unittest -v test_week3        # 24 项：tokenizer、span→token、mask、可达性、统计
 python w3_preflight.py --lengths 256 1024 --make-length 4096 --sample 8 --layers 28 36
 ```
 
@@ -28,7 +128,7 @@ python w3_preflight.py --lengths 256 1024 --make-length 4096 --sample 8 --layers
 
 tokenizer 已经放在 `_ref/tokenizer/`，离线可用。
 
-## 需要一个 Qwen 权重
+### 需要一个 Qwen 权重
 
 以下命令把 `<模型>` 换成 HF 名字（需要联网）或本地目录。
 
@@ -50,7 +150,7 @@ python w3_run.py --model <模型> --data-dir data --split needle_h1 --lengths 0 
 
 每个 `--out` 目录里有 `per_item.csv`（逐条）、`summary.csv`（按组）、`meta.json`（配置与耗时）。
 
-## 已经跑过的验证（`results/`）
+### 已经跑过的验证（`results/`）
 
 | 文件 | 内容 |
 |---|---|
@@ -61,11 +161,11 @@ python w3_run.py --model <模型> --data-dir data --split needle_h1 --lengths 0 
 
 这些是管线验证，不是论文结论：每格 20 条。
 
-## 文件
+### 文件
 
 | 文件 | 作用 |
 |---|---|
-| `Week3_Report_ZH.md` | **本周报告（中文，唯一版本）**：门禁、天花板、可见性、配对检验、等预算对照、可达性 |
+| `Week3_Report_ZH.md` | **本周报告（中文）**：门禁、天花板、可见性、配对检验、等预算对照、可达性 |
 | `Week3_Report_EN.md` | the same report in English, for the supervisor |
 | `Week3_Implementation_Guide_ZH.md` / `_EN.md` | 实施说明：五处必须改的地方、执行顺序、坑与时间预算 |
 | `lab_check.py` | 新机器自检：环境、显存、必需文件、4D mask 是否真的生效 |
@@ -76,11 +176,11 @@ python w3_run.py --model <模型> --data-dir data --split needle_h1 --lengths 0 
 | `w3_paired.py` | 配对精确 McNemar：从 `per_item.csv` 复算表 9 的每个 p 值 |
 | `w3_reach.py` | 值 token 在 36 层内能否到达读出口（表 11） |
 
-## 本地权重
+### 本地权重
 
 `_ref/qwen05b/`（约 1 GB）和 `_ref/qwen15b/`（约 3 GB）只用于跑通管线（`--random-model` 连权重都不需要）。不想留 4 GB 的话直接删掉，命令里换成你自己的模型路径即可。
 
-## 已知坑
+### 已知坑
 
 - `"# Output: "` 末尾的空格是**独立 token**（id 25），必须把它放进输入再在下一个位置读 10 个数字，否则读的是 `"7"` 而不是 `" 7"`。
 - 窗口不是信息切断：叠 L 层后感受野是 `1 + L×(W−1)`。256 B ≈ 203 token，W=64 时 RF=1765，什么都切不断。要看效果至少用 4 KB。
