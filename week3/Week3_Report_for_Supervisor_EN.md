@@ -181,6 +181,8 @@ Dataset B is structurally the same as the "needle in a haystack" long-context ev
 - two hops drop to 20–45%, three hops return to chance: **depth is the bottleneck**;
 - so every subsequent experiment uses one-hop data and treats distance as the variable.
 
+*Note: this table uses four distances and 20 programs per cell (targets 20/100/400/1,600), which is **not the same batch** as the five distances × 50 programs from Table 4 onwards; compare trends across tables, not individual numbers.*
+
 **Conclusion 3**: depth is the bottleneck, not distance; the one-hop task is the right platform.
 
 ### Table 4 — Five masks × five distances (n = 50, one hop; two window widths are shown, `local_global` is in Table 8)
@@ -252,11 +254,11 @@ Length, mask structure and total token count are unchanged; only the position of
 
 **Limitation of this table**: it sweeps one mask family (window width); accuracy rises monotonically with connections, which is clean. It **cannot** answer "what is evidence visibility worth", because `gold_union=64` and `window=64` use different connection counts (403,867 vs 257,248). That question is answered by Table 10.
 
-### Table 8 — Deployable fixed anchors (n = 50)
+### Table 8 — Deployable fixed anchors vs the completeness control (n = 50)
 
 Tables 4–7 are all "content-blind" masks except `gold_union`. This table adds the only deployable option that uses structural information: fixing particular **positions** as global (no labels needed).
 
-| Distance (tok) | full | first 4 tokens | every line start | every 4th line start | `gold_union=64` |
+| Distance (tok) | full | first 4 tokens | every line start | every 4th line start | `gold_union=64` (control) |
 |---:|---:|---:|---:|---:|---:|
 | 73 | 98% | 98% | 98% | 98% | 98% |
 | 151 | 100% | 6% | 8% | 6% | 100% |
@@ -335,7 +337,7 @@ Two regimes:
 | 4 | distance itself does not damage the ability | Table 3 one-hop row; Table 4 `full` column 98–100% from 73 to 4,051 |
 | 5 | up to 450 tokens position is decisive, **also at equal budget** | Table 4: 100% vs 6–16%; Table 10: 100% vs 8–18% (46:0, 41:0) |
 | 6 | from 1,646 tokens on, evidence visibility shows **no demonstrable advantage**: matched-budget differences are not significant | Table 10: 22% vs 10–12% (p = 0.11 / 0.30); 18% vs 6–12% (p = 0.070 / 0.58) |
-| 7 | **a mask without the evidence cannot recover**; at long distance both masks are at the floor and **indistinguishable**, so "shape does not matter" does not follow | Table 5 + Table 9: five cells p ≥ 0.25, both at 0–16% from 151 tokens on |
+| 7 | **a mask without the evidence cannot recover**; at long distance both masks are at the floor and **indistinguishable**, so "shape does not matter" does not follow | Table 5 + Table 9: four cells p ≥ 0.25, the 450 cell p = 0.039 (sensitive to the random draw, see the note under Table 5); both at 0–16% from 151 tokens on |
 | 8 | in the near condition the window beats random at equal budget (42:0, p ≈ 4.5×10⁻¹³), **because it contains the evidence** | Table 6 + Table 9 |
 | 9 | the failure is caused by distance | Table 6: same length, `window=64` 0% → 90%, `gold_union` 18% → 72% |
 | 10 | recovery needs a window of the same order as the distance | Table 7 + Table 9: 512 vs 64 is 30:0 (p ≈ 1.9×10⁻⁹) |
