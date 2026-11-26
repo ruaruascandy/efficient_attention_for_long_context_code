@@ -18,7 +18,7 @@
 
 ---
 
-## 2. 五种掩码的原理与最小例子
+## 2. 六种掩码的原理与最小例子
 
 ### 2.1 用一个 6 行的程序说明
 
@@ -35,7 +35,7 @@
 
 下面所有掩码只改变**每个位置能看哪些位置**，不改变 token 序列本身。
 
-### 2.2 五种掩码在这一小段程序上的效果
+### 2.2 六种掩码在这一小段程序上的效果
 
 | 掩码 | 规则 | 第 6 行（读出口）直接能看到 | 能否答对 |
 |---|---|---|---|
@@ -43,13 +43,15 @@
 | `window=2` | 每个位置只看前 2 行 | 5,6 | **不能**（缺行 1、4） |
 | `random=2` | 每行同样看 2 行，但位置随机 | 例：2,6 | **不能**（缺行 1、4） |
 | `block=3` | 每 3 行一块，块内可见、块间永不可见 | 4,5,6 | **不能**（缺行 1） |
-| `gold_union=2` | `window=2` **∪ 全部 gold 行设为全局可见** | 1,4,5,6 | **能** |
+| `local_global=2` | `window=2` **∪ 每行行首设为全局**（不看内容，按固定规则选） | 5,6 与行 1、行 4 的**首 token**（`a`、`d`） | **不能**（看得到名字，看不到值） |
+| `gold_union=2` | `window=2` **∪ 全部 gold 行设为全局**（按标注选） | 1,4,5,6（整行） | **能** |
 
 这张表就是全部原理（每种模式的论文出处见 §2.6）：
 
 - `window` 与 `random` 是**同等预算**的两种放法（都看 2 行），一个按位置、一个随机；
 - `block` 是**真正的切断**：块与块之间连"逐层传递"都没有；
-- `gold_union` 把**证据行**单独拎出来设为全局可见，因此在这段程序里它一定信息完备。
+- `local_global` 与 `gold_union` **共用同一个掩码机制**（窗口 + 少数全局），区别只在**全局集合怎么选**：`local_global` 用固定规则（每行行首、前 N 个 token），`gold_union` 用 gold 标注。前者可部署但不知道证据在哪；后者知道证据在哪，因此是上界。
+- 这一行的结果不是假设：行内第 3 个字符才是值 `7`，行首全局只露出 `a`。真实实验里同样的现象——4,051 token 上「每行行首」花掉 17.5% 连接、准确率 6%（表 8）。
 
 > 为便于说明，这一节按**行**计数；真实实验按 **token** 计数（一行 Python 约 13 个 Qwen token，因为每个数字单独成 token），规则完全相同。
 
@@ -66,7 +68,8 @@
 - `window=64`：读出口只看得到最后 64 个 token，**行 1 不在其中**。
 - `random=64`：看 64 个随机位置，行 1 **大概率不在其中**。
 - `block=4`：行 1 与行 6 不在同一块，**永远看不到**。
-- `gold_union=64`：行 1、行 4 被设为全局，**无论多远都看得到**。
+- `local_global=64`：行 1 的行首被设为全局，但**行首不是值**；行 1 的值在行内第 10 个 token 左右，仍看不到。
+- `gold_union=64`：行 1、行 4 **整行**被设为全局，**无论多远都看得到**。
 
 ### 2.4 `gold_union` 到底是什么，为什么重要
 
@@ -84,6 +87,17 @@
 
 可部署的替代是第 2 周的依赖分析器：从 `result` 反向遍历依赖边，**不需要任何标注**就能定位证据语句。`gold_union` 相当于把这个预测替换成真值，用来测量"如果预测完全正确，能恢复多少"。
 
+**它与 `local_global` 的区别（只有一个）：全局集合怎么选。** 两者调用同一个掩码构造：窗口 + 少数全局 token（全局 token 可看其前文，也被其后所有位置看到）。差别在于：
+
+| | `local_global` | `gold_union` |
+|---|---|---|
+| 全局集合的来源 | 固定规则：行首、前 N 个 token | gold 标注：证据语句的 token |
+| 需要标注吗 | 不需要 | **需要** |
+| 能部署吗 | 能 | 不能 |
+| 在本报告中的角色 | 可部署基线（表 8） | 上界（表 4、表 7） |
+
+所以它们不是同一个东西：`local_global` 是"一套规则"，`gold_union` 是"同一个机制配上标注"。混为一谈会掩盖本报告最重要的一条对比——**花更多连接、按结构选全局，仍然救不回来（表 8）**。
+
 ### 2.5 几个操作定义
 
 - 掩码形状是 4D 布尔张量，`True` = 允许参与注意力，直接传给 `model(attention_mask=...)`。上报数字之前先验证：显式 `full` 掩码与不传掩码的输出在 1e-4 内相等。
@@ -93,23 +107,22 @@
 
 ### 2.6 各模式的文献出处
 
-这些模式不是我们发明的，每一种都有明确的论文来源；我们只做了两处改动，并在最后一列标出。
+这些模式不是我们发明的。按导师的要求，这里只引文献综述中已有的四条，其余不再展开。
 
 | 本报告的模式 | 出处 | 原论文中的形态 | 我们的用法与差异 |
 |---|---|---|---|
 | `full` | Vaswani et al., 2017 [1] | 标准全注意力，复杂度 O(n²) | 作为天花板基线 |
-| `window=W` | Longformer（Beltagy et al., 2020）[2] 的 sliding window；Mistral 7B（Jiang et al., 2023）[3] 的 SWA；StreamingLLM（Xiao et al., 2023）[4] 的 window+sink | 每个位置只看相邻 W 个 token | 相同；未加 attention sink |
-| `local_global` / `gold_union` | Longformer 的 **global attention** [2]；BigBird 的 global tokens（Zaheer et al., 2020）[5] | 少数 token 设为全局：可看全部、也被全部看 | 相同机制；但**全局集合由 gold 标注指定**，因此是 oracle 上界，不是可部署方法 |
-| `random=W` | BigBird 的 **random attention** 组件 [5] | 在窗口之外随机连一部分位置 | 只借"随机位置"这一想法；我们的实现是**与 window 等预算的对照**，不是 BigBird 的完整稀疏模式 |
-| `block=L` | Image Transformer 的 local attention（Parmar et al., 2018）[6]；Sparse Transformer 的块状固定模式（Child et al., 2019）[7]；BP-Transformer（Qiu et al., 2019）[8] | 块内全连接、块间不连接 | 相同；块按源码行切分，块间**永不**相连 |
+| `window=W` | Longformer（Beltagy et al., 2020）[2] 的 sliding window | 每个位置只看相邻 W 个 token | 相同；未加 attention sink |
+| `local_global=W:k` | 机制同 Longformer 的 **global attention** [2]；代码领域的同类设计见 SASA（Liu T. et al., 2022）[4] | 少数 token 设为全局：可看前文、也被其后所有位置看到 | 相同机制；**全局集合按固定规则选**（每行行首、前 k 个 token），不需要标注 |
+| `gold_union=W` | **无对应论文**；借用 [2] 的全局机制，全局集合由 gold 标注指定 | — | **oracle 上界**，使用标注，不可部署；与 `local_global` 同机制、不同选法 |
+| `random=W` | BigBird 的 **random attention** 组件（Zaheer et al., 2020）[3] | 在窗口之外随机连一部分位置 | 只借"随机位置"这一想法；我们的实现是**与 window 等预算的对照**，不是 BigBird 的完整稀疏模式 |
+| `block=L` | **无对应论文**；本项目的固定块对角对照 | 块内全连接、块间不连接 | 仅用于给出"真切断"的下界，不作为某个方法的复现 |
 
 三点说明：
 
-1. **`gold_union` 没有对应的论文方法。** 它把 Longformer/BigBird 的"全局 token"机制接上 gold 标注，得到的是"信息完备的可见性"，属于上界构造。Longformer 选的是 `[CLS]` 与问题 token（不需要标注），我们选的是证据语句（需要标注）——这正是"方法"与"上界"的区别。
-2. **`random=W` 是控制变量，不是 BigBird 的复现。** BigBird 的随机连接是稀疏模式的组成部分；我们的随机掩码严格控制"每行可见数与 window 相同"，只改变位置，用来分离"看得少"与"看错地方"。
-3. **文献的共识是"稀疏注意力必须与训练配套"。** Longformer、BigBird、Mistral 都是在训练时就使用各自的稀疏模式；本报告第 4 节的实验正是检验"不训练、只事后改掩码"会发生什么。相关综述见 Tay et al., 2022 [9]。
-
-**与已有工作的关系。** Lost in the Middle（Liu et al., 2023）[10] 报告的是**全注意力**下的位置效应：关键信息落在上下文中段时准确率下降。本周测的是**稀疏掩码**下证据距离的影响，两者现象相关但设置不同：我们的 `full` 列在 4,051 token 上不掉，说明在这个任务上"定义在开头、查询在结尾"这个方向的距离不构成障碍；我们**没有测试证据落在中段**的情形，因此不能据此否定位置效应。
+1. **`gold_union` 与 `local_global` 必须分开看。** 两者共用"窗口 + 全局 token"这一机制，区别只在全局集合的来源：一个是 gold 标注（[2] 的机制 + 标注），一个是固定规则（可部署）。前者是上界，后者是基线，见 §2.4 的对照表与 §4 表 8。
+2. **`random=W` 是控制变量，不是 BigBird 的复现。** BigBird 的随机连接是其稀疏模式的组成部分；我们的随机掩码严格控制"每行可见数与 window 相同"，只改变位置，用来分离"看得少"与"看错地方"。
+3. **文献的共识是"稀疏注意力必须与训练配套"。** Longformer [2] 与 BigBird [3] 都是在训练时就使用各自的稀疏模式；本报告第 4 节的实验正是检验"不训练、只事后改掩码"会发生什么。
 
 ---
 
@@ -126,7 +139,7 @@
 
 **门禁**：在比较任何掩码之前，先确认读出口没坏——一行 `result = x + y`（trivial）、真实程序 + 注释写出答案（leak）、真实程序（real）。
 
-数据 B 的结构与长上下文评测里的 Needle-in-a-Haystack 同构（Kamradt, 2023 [12]；RULER，Hsieh et al., 2024 [11]）：把一个"针"（此处是一行定义）放在可控距离外，再看模型能否取回。区别是这里的答案不是逐字复制，而是**沿依赖链做一次整数运算后输出 0–9 的数字**，因此可以用 10 路读出口给出唯一判定，不需要人工或模型评分。
+数据 B 的结构与长上下文评测里常见的"大海捞针"同构：把一行定义放在可控距离之外，再看模型能否取回。区别是这里的答案不是逐字复制，而是**沿依赖链做一次整数运算后输出 0–9 的数字**，因此可以用 10 路读出口给出唯一判定，不需要人工或模型评分。
 
 ---
 
@@ -278,6 +291,7 @@
 | `gold_union` 用了 gold 标注 | 不是可部署方法 | 全表标注为 oracle 上界 |
 | 掩码不省计算 | "连接数"容易被误读为加速 | 统一注明"逻辑连接，非 FLOPs" |
 | 没有做配对检验 | 条件间是配对的，但只报了逐格准确率 | 正式分析时补 McNemar |
+| 第 2 周的两个选择器在本周数据上不可区分 | 250 条 1 跳程序、三个预算下，`structure_topk` 与 `evidence_groups` 选出的块**完全相同**（250/250），因此本周不涉及选择器之间的比较 | 本周只测"信息可见性"，不测选择器优劣；64 字节预算下的 150/250 是**预算可行比例**（d100/d400 的远端证据跨两个 64 字节块，需 128 字节），可行样例上两种方法的完整率均为 100% |
 
 ---
 
@@ -285,38 +299,25 @@
 
 1. **停止调掩码参数**：冻结权重下，长距离损失无法靠"让证据可见"弥补。
 2. **转向训练时适配**：LoRA 微调 3B，训练时就带 `window=64` / `gold_union=64`，检验 4k 上的 18% 能否提到 80% 以上。
-3. **接入第 2 周的分析器**：统计真实代码的依赖距离分布。若绝大多数依赖 ≤512 token，"窗口 512 + 少量全局锚点"在实践中就够用——这比"合成任务上无损"更有说服力。
-4. **可选的机制探针**：在 `full` 下测量读出口落在 gold token 上的注意力占比随距离的变化，为"看得见但用不上"提供直接证据。
+3. **测 `analyzer_union`，而不是继续比较两个选择器**：把 `gold_union` 的 gold span 换成第 2 周 `analyze()` 输出的 span（同一掩码规则、同一预算），直接量化"分析器不完美"的代价。两个选择器在本周数据上选出完全相同的块（见 §6），继续比它们得不到信息；有信息量的是**分析器 span 与 gold span 的差距**。
+4. **统计真实代码的依赖距离分布**：若绝大多数依赖 ≤512 token，"窗口 512 + 少量全局锚点"在实践中就够用——这比"合成任务上无损"更有说服力。
+5. **可选的机制探针**：在 `full` 下测量读出口落在 gold token 上的注意力占比随距离的变化，为"看得见但用不上"提供直接证据。
 
 ---
 
 ## 参考文献
 
+只列文献综述中已有的四条；其余不再展开。
+
 [1] Vaswani, A., et al. *Attention Is All You Need.* NeurIPS 2017. arXiv:1706.03762
 
 [2] Beltagy, I., Peters, M. E., Cohan, A. *Longformer: The Long-Document Transformer.* arXiv:2004.05150, 2020.
 
-[3] Jiang, A. Q., et al. *Mistral 7B.* arXiv:2310.06825, 2023.
+[3] Zaheer, M., et al. *Big Bird: Transformers for Longer Sequences.* NeurIPS 2020. arXiv:2007.14062
 
-[4] Xiao, G., Tian, Y., Chen, B., Han, S., Lewis, M. *Efficient Streaming Language Models with Attention Sinks.* arXiv:2309.17453, 2023.
+[4] Liu, T., et al. *Understanding Long Programming Languages with Structure-Aware Sparse Attention.* SIGIR 2022. arXiv:2205.13730
 
-[5] Zaheer, M., et al. *Big Bird: Transformers for Longer Sequences.* NeurIPS 2020. arXiv:2007.14062
-
-[6] Parmar, N., et al. *Image Transformer.* ICML 2018. arXiv:1802.10567
-
-[7] Child, R., Gray, S., Radford, A., Sutskever, I. *Generating Long Sequences with Sparse Transformers.* arXiv:1904.10509, 2019.
-
-[8] Qiu, J., et al. *BP-Transformer: Modelling Long-Range Context via Binary Partitioning.* arXiv:1910.13051, 2019.
-
-[9] Tay, Y., Dehghani, M., Bahri, D., Metzler, D. *Efficient Transformers: A Survey.* ACM Computing Surveys, 2022. arXiv:2009.06732
-
-[10] Liu, N. F., et al. *Lost in the Middle: How Language Models Use Long Contexts.* TACL, 2023. arXiv:2307.03172
-
-[11] Hsieh, C.-P., et al. *RULER: What's the Real Context Size of Your Long-Context Language Models?* arXiv:2404.06654, 2024.
-
-[12] Kamradt, G. *Needle in a Haystack: Pressure Testing LLMs.* 2023. https://github.com/gkamradt/LLMTest_NeedleInAHaystack
-
-*说明：引用只用于标明各注意力模式的出处与共识，不构成对本周方法新颖性的论证。*
+*说明：`gold_union` 与 `block` 没有对应论文，分别是本项目构造的 oracle 上界与真切断对照。引用只用于标明各注意力模式的出处，不构成对本周方法新颖性的论证。*
 
 ## 附录：复现
 
