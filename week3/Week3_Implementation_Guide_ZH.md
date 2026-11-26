@@ -148,7 +148,7 @@ logits = model(input_ids=torch.tensor([ids])).logits[0, -1]     # 在空格之�
 
 ```bash
 cd week3
-python -m unittest -v test_week3                 # 22 项，不需要权重
+python -m unittest -v test_week3                 # 24 项，不需要权重
 python w3_gate.py --model <7B 路径> --style completion --limit 40
 ```
 
@@ -295,7 +295,7 @@ python w3_run.py --model <7B> --data-dir data --split needle_h1 --lengths 0 \
 | `w3_curve.py` | 天花板曲线（字节长度 × family） |
 | `w3_needle.py` | 距离可控数据生成（跳数 × 距离） |
 | `w3_preflight.py` | 不需要权重的预检：token 长度、RF 表、mask 几何 |
-| `test_week3.py` | 22 项测试，含"显式 full mask == 无 mask" |
+| `test_week3.py` | 24 项测试，含"显式 full mask == 无 mask" |
 | `preflight/preflight.md` | 本文 §1.1 的数字 |
 | `data/needle_test.jsonl` | 3 跳数 × 4 距离 × 20 条 |
 | `results/` | 门禁与初步运行记录 |

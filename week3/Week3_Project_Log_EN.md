@@ -116,7 +116,7 @@ Every table is produced by the commands in section 7 of the report; per-item rec
 
 Artifacts
 
-`w3_core.py`, `w3_run.py`, `w3_gate.py`, `w3_needle.py`, `w3_curve.py`, `w3_preflight.py`, `w3_paired.py`, `w3_reach.py`, `lab_check.py`, `make_bundle.py`, `test_week3.py`, `run_all.sh`, `README.md`, `RESULTS.md`, `LAB_SETUP_ZH.md`, `Week3_Implementation_Guide_ZH.md`, `Week3_Report_for_Supervisor_ZH.md`, `Week3_Report_for_Supervisor_EN.md`, `_ref/tokenizer/`, `data/` (4 sets), `preflight/`, `results/` (per-run records; see `RESULTS.md`). Week 1 dependency: `dataset.py` and `data/{test,validation}.jsonl`.
+`w3_core.py`, `w3_run.py`, `w3_gate.py`, `w3_needle.py`, `w3_curve.py`, `w3_preflight.py`, `w3_paired.py`, `w3_reach.py`, `lab_check.py`, `make_bundle.py`, `test_week3.py`, `run_all.sh`, `README.md`, `RESULTS.md`, `LAB_SETUP_ZH.md`, `Week3_Implementation_Guide_ZH.md`, `Week3_Report_ZH.md`, `Week3_Report_EN.md`, `_ref/tokenizer/`, `data/` (4 sets), `preflight/`, `results/` (per-run records; see `RESULTS.md`). Week 1 dependency: `dataset.py` and `data/{test,validation}.jsonl`.
 
 Next
 

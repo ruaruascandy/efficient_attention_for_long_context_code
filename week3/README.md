@@ -1,6 +1,6 @@
 # week3 — 冻结 Qwen 的可见性实验（可运行脚手架）
 
-配套说明见 [Week3_Implementation_Guide_ZH.md](Week3_Implementation_Guide_ZH.md)；**换到实验室机器上跑**见 [LAB_SETUP_ZH.md](LAB_SETUP_ZH.md)。这里只讲怎么跑。
+配套说明见 [Week3_Implementation_Guide_ZH.md](Week3_Implementation_Guide_ZH.md) / [EN](Week3_Implementation_Guide_EN.md)；**换到实验室机器上跑**见 [LAB_SETUP_ZH.md](LAB_SETUP_ZH.md) / [EN](LAB_SETUP_EN.md)。这里只讲怎么跑。
 
 本目录里的代码**不训练任何模型**。它把第 1 周的数据、第 2 周的依赖分析、Qwen 的真实 tokenizer 和一个冻结的 Qwen 接在一起，测四件事：
 
@@ -65,11 +65,12 @@ python w3_run.py --model <模型> --data-dir data --split needle_h1 --lengths 0 
 
 | 文件 | 作用 |
 |---|---|
-| `Week3_Report_for_Supervisor_ZH.md` | **本周报告（中文，唯一版本）**：门禁、天花板、可见性、配对检验、等预算对照、可达性 |
-| `Week3_Report_for_Supervisor_EN.md` | the same report in English, for the supervisor |
+| `Week3_Report_ZH.md` | **本周报告（中文，唯一版本）**：门禁、天花板、可见性、配对检验、等预算对照、可达性 |
+| `Week3_Report_EN.md` | the same report in English, for the supervisor |
+| `Week3_Implementation_Guide_ZH.md` / `_EN.md` | 实施说明：五处必须改的地方、执行顺序、坑与时间预算 |
 | `lab_check.py` | 新机器自检：环境、显存、必需文件、4D mask 是否真的生效 |
 | `run_all.sh` | 一条命令跑完 0–6 步，门禁不过就停 |
-| `LAB_SETUP_ZH.md` | 实验室机器上的完整步骤、显存/时间预算、排错表、Slurm 模板 |
+| `LAB_SETUP_ZH.md` / `LAB_SETUP_EN.md` | 实验室机器上的完整步骤、显存/时间预算、排错表、Slurm 模板 |
 | `w3_core.py` `w3_run.py` | 核心：数据/tokenizer/prompt/mask/可达性；冻结模型评测 |
 | `w3_gate.py` `w3_curve.py` `w3_needle.py` `w3_preflight.py` | 门禁、天花板曲线、距离可控数据、无权重预检 |
 | `w3_paired.py` | 配对精确 McNemar：从 `per_item.csv` 复算表 9 的每个 p 值 |

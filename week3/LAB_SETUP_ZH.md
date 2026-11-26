@@ -89,7 +89,7 @@ modelscope download --model Qwen/Qwen2.5-Coder-7B-Instruct --local_dir /data/mod
 ```bash
 export MODEL=/data/models/qwen25coder7b
 python lab_check.py --model "$MODEL"
-python -m unittest -v test_week3        # 22 项，不需要权重
+python -m unittest -v test_week3        # 24 项，不需要权重
 ```
 
 `lab_check` 会打印 python/torch/transformers、GPU 与显存、必需文件、tokenizer、**4D mask 透传是否真的生效**，最后一行是 `Environment OK`。有 `[FAIL]` 就先按下面排错，别急着下 15 GB。
